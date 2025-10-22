@@ -7,14 +7,12 @@ public struct MachO: Parseable {
     public let header: MachOHeader
     public let loadCommands: [LoadCommand]
     
-    public let loadCommandsValues: [LoadCommandValues]
-    
     public let range: Range<Int>
     
     public var signature: CodeSignatureSuperBlob? = nil
     
-    
-    public enum Magic: UInt32, CustomStringConvertible {
+    @CaseName
+    public enum Magic: UInt32 {
         case macho32 = 0xfeedface
         case macho64 = 0xfeedfacf
         case macho32Swapped = 0xcefaedfe
@@ -36,15 +34,6 @@ public struct MachO: Parseable {
         
         public var headerSize: Int {
             is64Bit ? 28 : 24
-        }
-        
-        public var description: String {
-            switch self {
-            case .macho32: "macho32"
-            case .macho64: "macho64"
-            case .macho32Swapped: "macho32Swapped"
-            case .macho64Swapped: "macho64Swapped"
-            }
         }
     }
     
@@ -72,7 +61,7 @@ extension MachO: ExpressibleByParsing {
         
         // First pass is the get all of the command info
         // Some commands (LinkEdit) contain an offset/size that points to other places inside the machO, those get parsed in the next pass
-        self.loadCommands = try Array(parsing: &input, count: Int(self.header.ncmds)) { input in
+        var loadCommands:[LoadCommand] = try Array(parsing: &input, count: Int(self.header.ncmds)) { input in
             // Grab the header
             let header = try LoadCommandHeader(parsing: &input, endianness: endianness)
             
@@ -141,97 +130,56 @@ extension MachO: ExpressibleByParsing {
             }
         }
         
-        var values: [LoadCommandValues] = []
-        
-        for cmd in self.loadCommands {
-            switch cmd.header.id {
-            case .LC_SYMTAB:
-                if let _cmd = cmd as? LC_SYMTAB {
+        // Second pass to fill in deferred parsing items
+        for i in loadCommands.indices {
+            switch loadCommands[i].header.id {
+            case .LC_CODE_SIGNATURE:
+                if var cmd = loadCommands[i] as? LC_CODE_SIGNATURE {
                     try input.seek(toRange: machORange)
-                    try input.seek(toRelativeOffset: _cmd.symbolTableOffset)
-                    var span = try input.sliceSpan(byteCount: Int(_cmd.symbolTableSize))
+                    try input.seek(toRelativeOffset: cmd.offset)
+                    var span = try input.sliceSpan(byteCount: Int(cmd.size))
                     
-                    let symbols:[Symbol] = try Array(parsing: &span, count: Int(_cmd.numSymbols)) { input in
+                    cmd.signature = try CodeSignatureSuperBlob(parsing: &span)
+                    
+                    loadCommands[i] = cmd
+                }
+            case .LC_FUNCTION_STARTS:
+                if var cmd = loadCommands[i] as? LC_FUNCTION_STARTS {
+                    try input.seek(toRange: machORange)
+                    try input.seek(toRelativeOffset: cmd.offset)
+                    var span = try input.sliceSpan(byteCount: Int(cmd.size))
+                    
+                    cmd.starts = try FunctionStarts(parsing: &span)
+                    
+                    loadCommands[i] = cmd
+                }
+            case .LC_SYMTAB:
+                if var cmd = loadCommands[i] as? LC_SYMTAB {
+                    try input.seek(toRange: machORange)
+                    try input.seek(toRelativeOffset: cmd.symbolTableOffset)
+                    var span = try input.sliceSpan(byteCount: Int(cmd.symbolTableSize))
+                    
+                    let symbols:[Symbol] = try Array(parsing: &span, count: Int(cmd.numSymbols)) { input in
                         var symbolSpan = try input.sliceSpan(byteCount: is64Bit ? Symbol.size64 : Symbol.size32)
                         return try Symbol(parsing: &symbolSpan, endianness: endianness, is64it: is64Bit)
                     }
                     
-                    var strings: [String] = try symbols.map { symbol in
+                    let strings: [String] = try symbols.map { symbol in
                         try input.seek(toRange: machORange)
-                        try input.seek(toRelativeOffset: _cmd.stringTableOffset+symbol.n_strx)
+                        try input.seek(toRelativeOffset: cmd.stringTableOffset+symbol.n_strx)
                         return try String(parsingNulTerminated: &input)
                     }
                     
-                    values.append(
-                        LoadCommandValues.LC_SYMTAB(_cmd, symbols, strings)
-                    )
-                }
-            case .LC_CODE_SIGNATURE:
-                if let _cmd = cmd as? LC_CODE_SIGNATURE {
-                    try input.seek(toRange: machORange)
-                    try input.seek(toRelativeOffset: _cmd.offset)
-                    var span = try input.sliceSpan(byteCount: Int(_cmd.size))
+                    cmd.symbols = symbols
+                    cmd.strings = strings
                     
-                    values.append(
-                        LoadCommandValues.LC_CODE_SIGNATURE(_cmd, try CodeSignatureSuperBlob(parsing: &span))
-                    )
+                    loadCommands[i] = cmd
                 }
-            case .LC_FUNCTION_STARTS:
-                if let _cmd = cmd as? LC_FUNCTION_STARTS {
-                    try input.seek(toRange: machORange)
-                    try input.seek(toRelativeOffset: _cmd.offset)
-                    var span = try input.sliceSpan(byteCount: Int(_cmd.size))
-                    
-                    values.append(
-                        LoadCommandValues.LC_FUNCTION_STARTS(_cmd, try FunctionStarts(parsing: &span))
-                    )
-                }
-            case .LC_LOAD_DYLIB:
-                if let _cmd = cmd as? LC_TODO {
-                    values.append(
-                        LoadCommandValues.LC_LOAD_DYLIB(_cmd)
-                    )
-                }
-            case .LC_LOAD_WEAK_DYLIB:
-                if let _cmd = cmd as? LC_TODO {
-                    values.append(
-                        LoadCommandValues.LC_LOAD_WEAK_DYLIB(_cmd)
-                    )
-                }
-            case .LC_DYLD_ENVIRONMENT:
-                if let _cmd = cmd as? LC_TODO {
-                    values.append(
-                        LoadCommandValues.LC_DYLD_ENVIRONMENT(_cmd)
-                    )
-                }
-            case .LC_DYLD_INFO_ONLY:
-                if let _cmd = cmd as? LC_TODO {
-                    values.append(
-                        LoadCommandValues.LC_DYLD_INFO_ONLY(_cmd)
-                    )
-                }
-            case .LC_ENCRYPTION_INFO:
-                if let _cmd = cmd as? LC_TODO {
-                    values.append(
-                        LoadCommandValues.LC_ENCRYPTION_INFO(_cmd)
-                    )
-                }
-            case .LC_ENCRYPTION_INFO_64:
-                if let _cmd = cmd as? LC_TODO {
-                    values.append(
-                        LoadCommandValues.LC_ENCRYPTION_INFO_64(_cmd)
-                    )
-                }
-            default:
-                if let _cmd = cmd as? LC_TODO {
-                    values.append(
-                        LoadCommandValues.LC_TODO(_cmd)
-                    )
-                }
+            default: break
             }
         }
         
-        self.loadCommandsValues = values
+        self.loadCommands = loadCommands
     }
 }
 
@@ -240,6 +188,53 @@ extension MachO {
     public func getMachoOffset(_ range: Range<Int>) -> Range<Int> {
         range.lowerBound - self.range.lowerBound ..< range.upperBound - self.range.lowerBound
     }
+    
+    public static func isMachO(data: Data) -> Bool {
+        let magic = try? data.withParserSpan { input in
+            return try? Magic(parsing: &input, endianness: .little)
+        }
+        return magic != nil
+    }
+    
+//    public func getSignature() -> (LC_CODE_SIGNATURE, CodeSignatureSuperBlob)? {
+//        guard
+//            let value = loadCommandsValues.first(where: {
+//                switch $0 {
+//                case .LC_CODE_SIGNATURE(let cmd, let signature): true
+//                default: false
+//                }
+//            }),
+//            case .LC_CODE_SIGNATURE(let cmd, let signature) = value,
+//            let lc_signature = cmd as? LC_CODE_SIGNATURE
+//        else { return nil }
+//        
+//        return (lc_signature, signature)
+//    }
+    
+//    public func getCodeDirectory() -> CodeDirectory? {
+//        guard
+//            let (cmd,signature) = getSignature(),
+//            let cdSlot = signature.slots.first(where: { $0.type == .cdCodeDirectorySlot }),
+//            case .CodeDirectoryValue(let cd) = cdSlot.value
+//        else { return nil }
+//        
+//        return nil
+//    }
+    
+//    public func getSegmentByName(_ name: String) -> LC_SEGMENT_64? {
+//        guard
+//            let value = loadCommandsValues.first(where: {
+//                switch $0 {
+//                case .LC(let cmd, let signature): true
+//                default: false
+//                }
+//            }),
+//            case .LC_CODE_SIGNATURE(let cmd, let signature) = value,
+//            let lc_signature = cmd as? LC_CODE_SIGNATURE
+//        else { return nil }
+//        
+//        return (lc_signature, signature)
+//    }
 }
 
 

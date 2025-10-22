@@ -31,8 +31,8 @@ public struct Symbol: Parseable {
         }
     }
 
-    
-    public enum DEBUGGER_SYMBOL: UInt16, CustomStringConvertible {
+    @CaseName
+    public enum DEBUGGER_SYMBOL: UInt16 {
         case N_GSYM  =  0x20    /* global symbol: name,,NO_SECT,type,0 */
         case N_FNAME =   0x22    /* procedure name (f77 kludge): name,,NO_SECT,0,0 */
         case N_FUN  =  0x24    /* procedure: name,,n_sect,linenumber,address */
@@ -68,42 +68,6 @@ public struct Symbol: Parseable {
          * for the berkeley pascal compiler, pc(1):
          */
         case N_PC   = 0x30    /* global pascal symbol: name,,NO_SECT,subtype,line */
-        
-        public var description: String {
-            switch self {
-            case .N_PARAMS: "N_PARAMS"
-            case .N_VERSION: "N_VERSION"
-            case .N_OLEVEL: "N_OLEVEL"
-            case .N_PSYM: "N_PSYM"
-            case .N_EINCL: "N_EINCL"
-            case .N_GSYM: "N_GSYM"
-            case .N_FNAME: "N_FNAME"
-            case .N_FUN: "N_FUN"
-            case .N_STSYM: "N_STSYM"
-            case .N_LCSYM: "N_LCSYM"
-            case .N_BNSYM: "N_BNSYM"
-            case .N_AST: "N_AST"
-            case .N_OPT: "N_OPT"
-            case .N_RSYM: "N_RSYM"
-            case .N_SLINE: "N_SLINE"
-            case .N_ENSYM: "N_ENSYM"
-            case .N_SSYM: "N_SSYM"
-            case .N_SO: "N_SO"
-            case .N_OSO: "N_OSO"
-            case .N_LSYM: "N_LSYM"
-            case .N_BINCL: "N_BINCL"
-            case .N_SOL: "N_SOL"
-            case .N_ENTRY: "N_ENTRY"
-            case .N_LBRAC: "N_LBRAC"
-            case .N_EXCL: "N_EXCL"
-            case .N_RBRAC: "N_RBRAC"
-            case .N_BCOMM: "N_BCOMM"
-            case .N_ECOMM: "N_ECOMM"
-            case .N_ECOML: "N_ECOML"
-            case .N_LENG: "N_LENG"
-            case .N_PC: "N_PC"
-            }
-        }
     }
     
     public var size: Int {

@@ -8,100 +8,34 @@
 import Foundation
 import BinaryParsing
 
-public struct VM_PROT: OptionSet {
-    public let rawValue: UInt32
-    
-    public init(rawValue: UInt32) {
-        self.rawValue = rawValue
-    }
-    
-    public static var VM_PROT_NONE: VM_PROT { .init(rawValue: 0x00000000) }
-    public static var VM_PROT_READ: VM_PROT { .init(rawValue: 0x00000001) }
-    public static var VM_PROT_WRITE: VM_PROT { .init(rawValue: 0x00000002) }
-    public static var VM_PROT_EXECUTE: VM_PROT { .init(rawValue: 0x00000004) }
-    public static var VM_PROT_DEFAULT: VM_PROT { .init(rawValue: 0x00000003) }
-    public static var VM_PROT_RORW_TP: VM_PROT { .init(rawValue: 0x00000004) }
-    public static var VM_PROT_NO_CHANGE_LEGACY: VM_PROT { .init(rawValue: 0x00000008) }
-    public static var VM_PROT_NO_CHANGE: VM_PROT { .init(rawValue: 0x01000000) }
-    public static var VM_PROT_COPY: VM_PROT { .init(rawValue: 0x00000010) }
-    public static var VM_PROT_WANTS_COPY: VM_PROT { .init(rawValue: 0x00000010) }
-    public static var VM_PROT_IS_MASK: VM_PROT { .init(rawValue: 0x00000040) }
-    public static var VM_PROT_STRIP_READ: VM_PROT { .init(rawValue: 0x00000080) }
-    public static var VM_PROT_EXECUTE_ONLY: VM_PROT { .init(rawValue: 0x00000084) }
-    public static var VM_PROT_TPRO: VM_PROT { .init(rawValue: 0x00000200) }
-    public static var VM_PROT_ALLEXEC: VM_PROT { .init(rawValue: 0x00000004) }
-    
-    static public var debugDescriptions: [(Self, String)] {[
-        // (.VM_PROT_NONE, "VM_PROT_NONE"),  // Do not include none as a description unless rawValue is 0
-        (.VM_PROT_READ, "VM_PROT_READ"),
-        (.VM_PROT_WRITE, "VM_PROT_WRITE"),
-        (.VM_PROT_EXECUTE, "VM_PROT_EXECUTE"),
-        (.VM_PROT_EXECUTE, "VM_PROT_DEFAULT"),
-        (.VM_PROT_EXECUTE, "VM_PROT_RORW_TP"),
-        (.VM_PROT_EXECUTE, "VM_PROT_NO_CHANGE_LEGACY"),
-        (.VM_PROT_EXECUTE, "VM_PROT_NO_CHANGE"),
-        (.VM_PROT_EXECUTE, "VM_PROT_COPY"),
-        (.VM_PROT_EXECUTE, "VM_PROT_WANTS_COPY"),
-        (.VM_PROT_EXECUTE, "VM_PROT_IS_MASK"),
-        (.VM_PROT_EXECUTE, "VM_PROT_STRIP_READ"),
-        (.VM_PROT_EXECUTE, "VM_PROT_EXECUTE_ONLY"),
-        (.VM_PROT_EXECUTE, "VM_PROT_TPRO"),
-        (.VM_PROT_EXECUTE, "VM_PROT_ALLEXEC"),
-    ]}
-    
-    
-    public var flags: [(Self, String)] {
-        Self.debugDescriptions.filter { contains($0.0) }
-    }
-    
-    public var descriptionList: [String] {
-        if self.rawValue == 0 {
-            return ["VM_PROT_NONE"]
-        }
-        return Self.debugDescriptions.filter { contains($0.0) }.map { $0.1 }
-    }
-    
-    public var description: String {
-        return "(\(descriptionList.joined(separator: ",")))"
-    }
+
+@AutoOptionSet
+public struct VM_PROT: OptionSet, Sendable {
+    public static let VM_PROT_NONE = VM_PROT(rawValue: 0x00000000)
+    public static let VM_PROT_READ = VM_PROT(rawValue: 0x00000001)
+    public static let VM_PROT_WRITE = VM_PROT(rawValue: 0x00000002)
+    public static let VM_PROT_EXECUTE = VM_PROT(rawValue: 0x00000004)
+    public static let VM_PROT_DEFAULT = VM_PROT(rawValue: 0x00000003)
+    public static let VM_PROT_RORW_TP = VM_PROT(rawValue: 0x00000004)
+    public static let VM_PROT_NO_CHANGE_LEGACY = VM_PROT(rawValue: 0x00000008)
+    public static let VM_PROT_NO_CHANGE = VM_PROT(rawValue: 0x01000000)
+    public static let VM_PROT_COPY = VM_PROT(rawValue: 0x00000010)
+    public static let VM_PROT_WANTS_COPY = VM_PROT(rawValue: 0x00000010)
+    public static let VM_PROT_IS_MASK = VM_PROT(rawValue: 0x00000040)
+    public static let VM_PROT_STRIP_READ = VM_PROT(rawValue: 0x00000080)
+    public static let VM_PROT_EXECUTE_ONLY = VM_PROT(rawValue: 0x00000084)
+    public static let VM_PROT_TPRO = VM_PROT(rawValue: 0x00000200)
+    public static let VM_PROT_ALLEXEC = VM_PROT(rawValue: 0x00000004)
 }
 
-public struct SegmentFlags: OptionSet, CustomStringConvertible {
-    public let rawValue: UInt32
-    
-    public init(rawValue: UInt32) {
-        self.rawValue = rawValue
-    }
-
-    public static var NONE: SegmentFlags { .init(rawValue: 0) }
-    public static var HIGH_VM: SegmentFlags { .init(rawValue: 0x00000001) }
-    public static var FIXED_VM_LIBRARY: SegmentFlags { .init(rawValue: 0x00000002) }
-    public static var NO_RELOCATIONS: SegmentFlags { .init(rawValue: 0x00000004) }
-    public static var PROTECTED_V1: SegmentFlags { .init(rawValue: 0x00000008) }
-    public static var READ_ONLY: SegmentFlags { .init(rawValue: 0x00000010) }
-
-    static public var debugDescriptions: [(Self, String)] {[
-        (.HIGH_VM, "HIGH_VM"),
-        (.FIXED_VM_LIBRARY, "FIXED_VM_LIBRARY"),
-        (.NO_RELOCATIONS, "NO_RELOCATIONS"),
-        (.PROTECTED_V1, "PROTECTED_V1"),
-        (.READ_ONLY, "READ_ONLY"),
-    ]}
-    
-    public var flags: [(Self, String)] {
-        Self.debugDescriptions.filter { contains($0.0) }
-    }
-    
-    public var descriptionList: [String] {
-        if self.rawValue == 0 {
-            return ["NONE"]
-        }
-        return Self.debugDescriptions.filter { contains($0.0) }.map { $0.1 }
-    }
-    
-    public var description: String {
-        return "(\(descriptionList.joined(separator: ",")))"
-    }
+@AutoOptionSet
+public struct SegmentFlags: OptionSet, Sendable {
+    public static let NONE = SegmentFlags(rawValue: 0)
+    public static let HIGH_VM = SegmentFlags(rawValue: 0x00000001)
+    public static let FIXED_VM_LIBRARY = SegmentFlags(rawValue: 0x00000002)
+    public static let NO_RELOCATIONS = SegmentFlags(rawValue: 0x00000004)
+    public static let PROTECTED_V1 = SegmentFlags(rawValue: 0x00000008)
+    public static let READ_ONLY = SegmentFlags(rawValue: 0x00000010)
 }
 
 public struct Section64: Parseable {
@@ -123,10 +57,6 @@ public struct Section64: Parseable {
     
     public static let size: Int = 80
     
-    public var description: String {
-        return "\(segmentName).\(sectionName)"
-    }
-    
     // https://github.com/blacktop/go-macho/blob/master/types/section.go#L74
     // TBD
     public struct SectionFlags: CustomStringConvertible {
@@ -137,14 +67,9 @@ public struct Section64: Parseable {
             "TBD"
         }
         
-        public struct SectionType: OptionSet {
-            public let rawValue: UInt32
-            
-            public init(rawValue: UInt32) {
-                self.rawValue = rawValue
-            }
-             
-            public static var REGULAR: SectionType { .init(rawValue: 0x00000000) }
+        @AutoOptionSet
+        public struct SectionType: OptionSet, Sendable {
+            public static let REGULAR: SectionType = SectionType(rawValue: 0x00000000)
             public static var ZERO_FILL: SectionType { .init(rawValue: 0x00000001) }
             public static var CSTRING_LITERALS: SectionType { .init(rawValue: 0x00000002) }
             public static var BYTE_LITERALS4: SectionType { .init(rawValue: 0x000000003) }
@@ -152,14 +77,9 @@ public struct Section64: Parseable {
             public static var LITERAL_POINTERS: SectionType { .init(rawValue: 0x00000005) }
         }
         
-        public struct SectionAttributes: OptionSet {
-            public let rawValue: UInt32
-            
-            public init(rawValue: UInt32) {
-                self.rawValue = rawValue
-            }
-            
-            public static var PURE_INSTRUCTIONS: SectionAttributes { .init(rawValue: 0x00000000) }
+        @AutoOptionSet
+        public struct SectionAttributes: OptionSet, Sendable {
+            public static let PURE_INSTRUCTIONS = SectionAttributes(rawValue: 0x00000000)
         }
         
         init(_ value: UInt32) {
@@ -253,22 +173,31 @@ extension LC_SEGMENT_64: Displayable {
             .init(label: "Flags", stringValue: flags.description, offset: 68, size: 4, children: nil, obj: self),
             .init(label: "Sections", stringValue: "\(nsects.description) Sections", offset: 72, size: Int(nsects)*Section64.size,
                   children: sections.enumerated().map { (index: Int, section: Section64) in
-                          .init(label: "Section \(index.description)", stringValue: section.sectionName, offset: 72+index*Section64.size, size: 4, children: [
-                            .init(label: "Section Name", stringValue: section.sectionName, offset: 72+index*Section64.size, size: 16, children: nil, obj: self),
-                            .init(label: "Segment Name", stringValue: section.segmentName, offset: 72+index*Section64.size+16, size: 16, children: nil, obj: self),
-                            .init(label: "Address", stringValue: section.address.description, offset: 72+index*Section64.size+32, size: 8, children: nil, obj: self),
-                            .init(label: "Size", stringValue: section.size.description, offset: 72+index*Section64.size+40, size: 8, children: nil, obj: self),
-                            .init(label: "Offset", stringValue: section.offset.description, offset: 72+index*Section64.size+48, size: 8, children: nil, obj: self),
-                            .init(label: "Alignment", stringValue: section.alignment.description, offset: 72+index*Section64.size+52, size: 4, children: nil, obj: self),
-                            .init(label: "Relocations Offset", stringValue: section.sectionName, offset: 72+index*Section64.size+56, size: 4, children: nil, obj: self),
-                            .init(label: "Number of Relocations", stringValue: section.nRelocs.description, offset: 72+index*Section64.size+60, size: 4, children: nil, obj: self),
-                            .init(label: "Flags", stringValue: section.flags.description, offset: 72+index*Section64.size+64, size: 4, children: nil, obj: self),
-                            .init(label: "Reserved 1", stringValue: section.reserved1.description, offset: 72+index*Section64.size+68, size: 4, children: nil, obj: self),
-                            .init(label: "Reserved 2", stringValue: section.reserved2.description, offset: 72+index*Section64.size+72, size: 4, children: nil, obj: self),
-                            .init(label: "Reserved 3", stringValue: section.reserved3.description, offset: 72+index*Section64.size+76, size: 4, children: nil, obj: self),
-                          ], obj: self)
+                          .init(label: "Section \(index.description)", stringValue: section.description, offset: 72+index*Section64.size, size: 4, children: section.fields, obj: self)
                   },
                   obj: self),
+        ]
+    }
+    public var children: [Displayable]? { nil }
+}
+
+extension Section64: Displayable {
+    public var title: String { "\(Self.self)" }
+    public var description: String { "\(segmentName).\(sectionName)" }
+    public var fields: [DisplayableField] {
+        [
+          .init(label: "Section Name", stringValue: sectionName, offset: 0, size: 16, children: nil, obj: self),
+          .init(label: "Segment Name", stringValue: segmentName, offset: 16, size: 16, children: nil, obj: self),
+          .init(label: "Address", stringValue: address.description, offset: 32, size: 8, children: nil, obj: self),
+          .init(label: "Size", stringValue: size.description, offset: 40, size: 8, children: nil, obj: self),
+          .init(label: "Offset", stringValue: offset.description, offset: 48, size: 8, children: nil, obj: self),
+          .init(label: "Alignment", stringValue: alignment.description, offset: 52, size: 4, children: nil, obj: self),
+          .init(label: "Relocations Offset", stringValue: sectionName, offset: 56, size: 4, children: nil, obj: self),
+          .init(label: "Number of Relocations", stringValue: nRelocs.description, offset: 60, size: 4, children: nil, obj: self),
+          .init(label: "Flags", stringValue: flags.description, offset: 64, size: 4, children: nil, obj: self),
+          .init(label: "Reserved 1", stringValue: reserved1.description, offset: 8, size: 4, children: nil, obj: self),
+          .init(label: "Reserved 2", stringValue: reserved2.description, offset: 72, size: 4, children: nil, obj: self),
+          .init(label: "Reserved 3", stringValue: reserved3.description, offset: 76, size: 4, children: nil, obj: self),
         ]
     }
     public var children: [Displayable]? { nil }

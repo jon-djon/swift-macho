@@ -26,7 +26,7 @@ extension FatArchive: Displayable {
     public var title: String { "Fat Archive" }
     public var description: String { "" }
     public var fields: [DisplayableField] {
-        var fields: [DisplayableField] = [
+        [
             .init(label: "CPU", stringValue: cpu.description, offset: 0, size: 8, children: [
                 .init(label: "Type", stringValue: cpu.type.description, offset: 0, size: 8, children: nil, obj: self),
                 .init(label: "Subtype", stringValue: cpu.subtype.description, offset: 8, size: 8, children: nil, obj: self),
@@ -35,7 +35,6 @@ extension FatArchive: Displayable {
             .init(label: "Size", stringValue: offset.description, offset: 12, size: 4, children: nil, obj: self),
             .init(label: "Align", stringValue: offset.description, offset: 16, size: 4, children: nil, obj: self),
         ]
-        return fields
     }
     public var children: [Displayable]? { nil }
 }

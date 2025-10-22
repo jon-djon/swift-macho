@@ -22,6 +22,7 @@ public class MachOFile {
         }
     }
     
+    @CaseName
     public enum Magic: UInt32 {
         case fat = 0xcafebabe
         case fat64 = 0xcafebabf
@@ -79,6 +80,20 @@ extension MachOFile: Displayable {
         switch file {
             case .fat(let fat): return [fat]
         case .macho(let macho): return [macho]
+        }
+    }
+}
+
+
+extension MachOFile {
+    public func getHash(_ range: Range<Int>, type: MachOCodeSignatureHashType) -> String {
+        switch type {
+        case .NO_HASH: ""
+        case .SHA1: data.subdata(in: range).sha1
+        case .SHA256: data.subdata(in: range).sha256
+        case .SHA256_TRUNCATED: String(data.subdata(in: range).sha256.prefix(32))
+        case .SHA384: data.subdata(in: range).sha384
+        case .SHA512: data.subdata(in: range).sha512
         }
     }
 }

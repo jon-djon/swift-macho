@@ -24,20 +24,12 @@ public struct FatBinary: Parseable {
     
     public var range: Range<Int>
 
+    @CaseName
     public enum Magic: UInt32, CustomStringConvertible {
-        case fat = 0xcafebabe
-        case fat64 = 0xcafebabf
-        case fatSwapped = 0xbebafeca
-        case fat64Swapped = 0xbfbafeca
-
-        public var description: String {
-            switch self {
-            case .fat: return "Fat"
-            case .fat64: return "Fat64"
-            case .fatSwapped: return "FatSwapped"
-            case .fat64Swapped: return "Fat64Swapped"
-            }
-        }
+        case Fat = 0xcafebabe
+        case Fat64 = 0xcafebabf
+        case FatSwapped = 0xbebafeca
+        case Fat64Swapped = 0xbfbafeca
     }
 }
 

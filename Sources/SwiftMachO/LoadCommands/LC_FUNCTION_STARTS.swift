@@ -13,6 +13,9 @@ public struct LC_FUNCTION_STARTS: LoadCommand, LoadCommandLinkEdit {
     public let header: LoadCommandHeader
     public let offset: UInt32
     public let size: UInt32
+    
+    // Deferred parsing
+    public var starts: FunctionStarts? = nil
 }
 
 extension LC_FUNCTION_STARTS {
@@ -50,6 +53,8 @@ extension LC_FUNCTION_STARTS: Displayable {
         [
             .init(label: "ID", stringValue: header.id.description, offset: 0, size: 4, children: nil, obj: self),
             .init(label: "Size", stringValue: header.cmdSize.description, offset: 4, size: 4, children: nil, obj: self),
+            .init(label: "Offset", stringValue: offset.description, offset: 8, size: 4, children: nil, obj: self),
+            .init(label: "Size", stringValue: size.description, offset: 12, size: 4, children: nil, obj: self),
         ]
     }
     public var children: [Displayable]? { nil }

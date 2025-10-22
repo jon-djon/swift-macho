@@ -60,10 +60,16 @@ struct ParseMachO: ParsableCommand {
 
     // Define the file path as a required command-line argument.
     @Argument(help: "The path to the file to check.")
-    var filePath: String
+    var filePath: String = ""
     
     // The main logic is now in the `run()` method.
     func run() throws {
+        let value = 42
+        let result = #stringify(value)
+        print(result) // (42, "value")
+        
+        return
+        
         guard let file = try? MachOFile(URL(fileURLWithPath: filePath)) else {
             print("Could not parse Mach-O at \(filePath)")
             return

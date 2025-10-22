@@ -21,21 +21,6 @@ extension SimpleCommand {
     
 }
 
-public enum LoadCommandValues {
-    case LC_CODE_SIGNATURE(LoadCommand, CodeSignatureSuperBlob)
-    case LC_FUNCTION_STARTS(LoadCommand, FunctionStarts)
-    case LC_SYMTAB(LoadCommand, [Symbol], [String])
-    case LC_TODO(LoadCommand)
-    case LC_LOAD_DYLIB(LoadCommand)
-    case LC_LOAD_WEAK_DYLIB(LoadCommand)
-    case LC_DYLD_ENVIRONMENT(LoadCommand)
-    case LC_DYLD_INFO_ONLY(LoadCommand)
-    case LC_ENCRYPTION_INFO(LoadCommand)
-    case LC_ENCRYPTION_INFO_64(LoadCommand)
-}
-
-
-
 public struct LC_TODO: LoadCommand, Parseable {
     public let header: LoadCommandHeader
     public let range: Range<Int>

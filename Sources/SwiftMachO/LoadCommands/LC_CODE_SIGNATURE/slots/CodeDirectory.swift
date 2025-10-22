@@ -9,7 +9,6 @@ import BinaryParsing
 
 
 public struct CodeDirectory: Parseable {
-    public let range: Range<Int>
     public let magic: CodeSignatureSuperBlob.Magic
     public let length: UInt32
     public let version: UInt32
@@ -55,13 +54,17 @@ public struct CodeDirectory: Parseable {
 //    public let teamID: String?
 //    public var pageSize: Int
     
+    public let range: Range<Int>
+    
     public struct ExecutableSegmentHeader {
-        public let range: Range<Int>
         public let base: UInt64
         public let limit: UInt64
         public let flags: SecAccessControlCreateFlags
         
-        public enum Flags: UInt64, CustomStringConvertible {
+        public let range: Range<Int>
+        
+        @CaseName
+        public enum Flags: UInt64 {
             case EXECSEG_MAIN_BINARY = 0x1
             case EXECSEG_ALLOW_UNSIGNED = 0x10
             case EXECSEG_DEBUGGER = 0x20
@@ -69,54 +72,47 @@ public struct CodeDirectory: Parseable {
             case EXECSEG_SKIP_LV = 0x80
             case EXECSEG_CAN_LOAD_CDHASH = 0x100
             case EXECSEG_CAN_EXEC_CDHASH = 0x200
-            
-            public var description: String {
-                switch self {
-                case .EXECSEG_MAIN_BINARY: "EXECSEG_MAIN_BINARY"
-                case .EXECSEG_ALLOW_UNSIGNED: "EXECSEG_ALLOW_UNSIGNED"
-                case .EXECSEG_DEBUGGER: "EXECSEG_DEBUGGER"
-                case .EXECSEG_JIT: "EXECSEG_JIT"
-                case .EXECSEG_SKIP_LV: "EXECSEG_SKIP_LV"
-                case .EXECSEG_CAN_LOAD_CDHASH: "EXECSEG_CAN_LOAD_CDHASH"
-                case .EXECSEG_CAN_EXEC_CDHASH: "EXECSEG_CAN_EXEC_CDHASH"
-                }
-            }
         }
     }
     
     public struct RuntimeHeader: Parseable {
-        public let range: Range<Int>
         public let version: UInt32
         public let preEncryptionOffset: UInt32
+        
+        public let range: Range<Int>
     }
     
     public struct LinkageHeader: Parseable {
-        public let range: Range<Int>
         public let version: UInt32
         public let applicationType: UInt8
         public let applicationSubType: UInt16
         public let offset: UInt32
         public let size: UInt32
+        
+        public let range: Range<Int>
     }
     
     public struct Scatter: Parseable {
-        public let range: Range<Int>
         public let count: UInt32
         public let base: UInt32
         public let targetOffset: UInt64
         public let reserved: UInt64
+        
+        public let range: Range<Int>
     }
     
     public struct CodeLimit64: Parseable {
-        public let range: Range<Int>
         public let unused: UInt64
         public let codeLimit64: UInt64
+        
+        public let range: Range<Int>
     }
     
     public struct SpecialHash: Parseable {
-        public let range: Range<Int>
         public let index: CodeSignatureCodeDirectoryType
         public let data: Data
+        
+        public let range: Range<Int>
         
         public var hash: String {
             return data[range].hexDescription
@@ -140,24 +136,41 @@ public struct CodeDirectory: Parseable {
 }
 
 extension CodeDirectory {
-    public init(parsing input: inout ParserSpan, endian: Endianness) throws {
+    public init(parsing input: inout ParserSpan) throws {
         let start = input.parserRange.lowerBound
-        self.magic = try CodeSignatureSuperBlob.Magic(parsing: &input, endianness: endian)
+        self.magic = try CodeSignatureSuperBlob.Magic(parsing: &input, endianness: .big)
         // TODO: guard to check magic
-        self.length = try UInt32(parsing: &input, endianness: endian)
-        self.version = try UInt32(parsing: &input, endianness: endian)
-        self.flags = try UInt32(parsing: &input, endianness: endian)
-        self.hashOffset = try UInt32(parsing: &input, endianness: endian)
-        self.identOffset = try UInt32(parsing: &input, endianness: endian)
+        self.length = try UInt32(parsing: &input, endianness: .big)
+        self.version = try UInt32(parsing: &input, endianness: .big)
+        self.flags = try UInt32(parsing: &input, endianness: .big)
+        self.hashOffset = try UInt32(parsing: &input, endianness: .big)
+        self.identOffset = try UInt32(parsing: &input, endianness: .big)
         self.identifier = try String(parsingNulTerminated: &input)
-        self.numSpecialSlots = try UInt32(parsing: &input, endianness: endian)
-        self.numCodeSlots = try UInt32(parsing: &input, endianness: endian)
-        self.codeLimit = try UInt32(parsing: &input, endianness: endian)
+        self.numSpecialSlots = try UInt32(parsing: &input, endianness: .big)
+        self.numCodeSlots = try UInt32(parsing: &input, endianness: .big)
+        self.codeLimit = try UInt32(parsing: &input, endianness: .big)
         self.hashSize = try UInt8(parsing: &input)
         self.hashType = try UInt8(parsing: &input)
         self.platform = try UInt8(parsing: &input)
         self._pageSize = try UInt8(parsing: &input)
-        self.unused = try UInt32(parsing: &input, endianness: endian)
+        self.unused = try UInt32(parsing: &input, endianness: .big)
         self.range = start..<input.parserRange.lowerBound
+    }
+}
+
+extension CodeDirectory: Displayable {
+    public var title: String { "\(Self.self)" }
+    public var description: String { "" }
+    public var fields: [DisplayableField] {
+        [
+            .init(label: "Magic", stringValue: magic.description, offset: 0, size: 4, children: nil, obj: self),
+            .init(label: "Length", stringValue: length.description, offset: 4, size: 4, children: nil, obj: self),
+            .init(label: "Version", stringValue: version.description, offset: 8, size: 4, children: nil, obj: self),
+            .init(label: "Flags", stringValue: flags.description, offset: 12, size: 4, children: nil, obj: self),
+            .init(label: "Lots TODO", stringValue: "", offset: 16, size: 4, children: nil, obj: self),
+        ]
+    }
+    public var children: [Displayable]? {
+        nil
     }
 }
