@@ -5,11 +5,75 @@ import BinaryParsing
 public struct MachO: Parseable {
     public let magic: Magic
     public let header: MachOHeader
-    public let loadCommands: [LoadCommand]
+    public let loadCommands: [LoadCommandValue]
     
     public let range: Range<Int>
     
     public var signature: CodeSignatureSuperBlob? = nil
+    
+    public var rawCommands: [LoadCommand] {
+        loadCommands.map {
+            switch $0 {
+            case .LC_CODE_SIGNATURE(let cmd, _): cmd
+            case .LC_UUID(let cmd): cmd
+            case .LC_FUNCTION_STARTS(let cmd, _): cmd
+            case .LC_LOAD_DYLIB(let cmd): cmd
+            case .LC_LOAD_WEAK_DYLIB(let cmd): cmd
+            case .LC_DYLD_ENVIRONMENT(let cmd): cmd
+            case .LC_DYLD_INFO_ONLY(let cmd): cmd
+            case .LC_ENCRYPTION_INFO(let cmd): cmd
+            case .LC_ENCRYPTION_INFO_64(let cmd): cmd
+            case .LC_SEGMENT(let cmd): cmd
+            case .LC_SYMTAB(let cmd, _, _): cmd
+            case .LC_SYMSEG(let cmd): cmd
+            case .LC_THREAD(let cmd): cmd
+            case .LC_UNIXTHREAD(let cmd): cmd
+            case .LC_LOADFVMLIB(let cmd): cmd
+            case .LC_IDFVMLIB(let cmd): cmd
+            case .LC_IDENT(let cmd): cmd
+            case .LC_FVMFILE(let cmd): cmd
+            case .LC_PREPAGE(let cmd): cmd
+            case .LC_DYSYMTAB(let cmd): cmd
+            case .LC_LOAD_DYLINKER(let cmd): cmd
+            case .LC_ID_DYLINKER(let cmd): cmd
+            case .LC_PREBOUND_DYLIB(let cmd): cmd
+            case .LC_ROUTINES(let cmd): cmd
+            case .LC_SUB_FRAMEWORK(let cmd): cmd
+            case .LC_SUB_UMBRELLA(let cmd): cmd
+            case .LC_SUB_CLIENT(let cmd): cmd
+            case .LC_SUB_LIBRARY(let cmd): cmd
+            case .LC_TWOLEVEL_HINTS(let cmd): cmd
+            case .LC_PREBIND_CKSUM(let cmd): cmd
+            case .LC_SEGMENT_64(let cmd): cmd
+            case .LC_ROUTINES_64(let cmd): cmd
+            case .LC_RPATH(let cmd): cmd
+            case .LC_SEGMENT_SPLIT_INFO(let cmd): cmd
+            case .LC_REEXPORT_DYLIB(let cmd): cmd
+            case .LC_LAZY_LOAD_DYLIB(let cmd): cmd
+            case .LC_DYLD_INFO(let cmd): cmd
+            case .LC_LOAD_UPWARD_DYLIB(let cmd): cmd
+            case .LC_VERSION_MIN_MACOSX(let cmd): cmd
+            case .LC_DYLD_CHAINED_FIXUPS(let cmd): cmd
+            case .LC_VERSION_MIN_IPHONEOS(let cmd): cmd
+            case .LC_MAIN(let cmd): cmd
+            case .LC_DATA_IN_CODE(let cmd): cmd
+            case .LC_SOURCE_VERSION(let cmd): cmd
+            case .LC_DYLIB_CODE_SIGN_DRS(let cmd): cmd
+            case .LC_LINKER_OPTION(let cmd): cmd
+            case .LC_LINKER_OPTIMIZATION_HINT(let cmd): cmd
+            case .LC_VERSION_MIN_TVOS(let cmd): cmd
+            case .LC_VERSION_MIN_WATCHOS(let cmd): cmd
+            case .LC_NOTE(let cmd): cmd
+            case .LC_BUILD_VERSION(let cmd): cmd
+            case .LC_DYLD_EXPORTS_TRIE(let cmd): cmd
+            case .LC_FILESET_ENTRY(let cmd): cmd
+            case .LC_ATOM_INFO(let cmd): cmd
+            case .LC_FUNCTION_VARIANTS(let cmd): cmd
+            case .LC_FUNCTION_VARIANT_FIXUPS(let cmd): cmd
+            case .LC_TARGET_TRIPLE(let cmd): cmd
+            }
+        }
+    }
     
     @CaseName
     public enum Magic: UInt32 {
@@ -45,8 +109,6 @@ public struct MachO: Parseable {
 
 extension MachO: ExpressibleByParsing {
     public init(parsing input: inout ParserSpan) throws {
-        print("Macho Range \(input.parserRange)")
-        
         // The passed in input should already be set to the given macho range
         let machORange = input.parserRange
         self.range = input.parserRange.lowerBound..<input.parserRange.upperBound
@@ -61,7 +123,7 @@ extension MachO: ExpressibleByParsing {
         
         // First pass is the get all of the command info
         // Some commands (LinkEdit) contain an offset/size that points to other places inside the machO, those get parsed in the next pass
-        var loadCommands:[LoadCommand] = try Array(parsing: &input, count: Int(self.header.ncmds)) { input in
+        let cmds:[LoadCommand] = try Array(parsing: &input, count: Int(self.header.ncmds)) { input in
             // Grab the header
             let header = try LoadCommandHeader(parsing: &input, endianness: endianness)
             
@@ -131,51 +193,205 @@ extension MachO: ExpressibleByParsing {
         }
         
         // Second pass to fill in deferred parsing items
-        for i in loadCommands.indices {
-            switch loadCommands[i].header.id {
+        var loadCommands: [LoadCommandValue] = []
+        for loadCommand in cmds {
+            switch loadCommand.header.id {
             case .LC_CODE_SIGNATURE:
-                if var cmd = loadCommands[i] as? LC_CODE_SIGNATURE {
-                    try input.seek(toRange: machORange)
-                    try input.seek(toRelativeOffset: cmd.offset)
-                    var span = try input.sliceSpan(byteCount: Int(cmd.size))
+                guard let cmd = loadCommand as? LC_CODE_SIGNATURE else { throw MachOError.unknownError }
                     
-                    cmd.signature = try CodeSignatureSuperBlob(parsing: &span)
-                    
-                    loadCommands[i] = cmd
-                }
+                try input.seek(toRange: machORange)
+                try input.seek(toRelativeOffset: cmd.offset)
+                var span = try input.sliceSpan(byteCount: Int(cmd.size))
+                
+                loadCommands.append(LoadCommandValue.LC_CODE_SIGNATURE(cmd, try CodeSignatureSuperBlob(parsing: &span)))
+            case .LC_UUID:
+                guard let cmd = loadCommand as? LC_UUID else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_UUID(cmd))
             case .LC_FUNCTION_STARTS:
-                if var cmd = loadCommands[i] as? LC_FUNCTION_STARTS {
-                    try input.seek(toRange: machORange)
-                    try input.seek(toRelativeOffset: cmd.offset)
-                    var span = try input.sliceSpan(byteCount: Int(cmd.size))
-                    
-                    cmd.starts = try FunctionStarts(parsing: &span)
-                    
-                    loadCommands[i] = cmd
-                }
+                guard let cmd = loadCommand as? LC_FUNCTION_STARTS else { throw MachOError.unknownError }
+                try input.seek(toRange: machORange)
+                try input.seek(toRelativeOffset: cmd.offset)
+                var span = try input.sliceSpan(byteCount: Int(cmd.size))
+                
+                loadCommands.append(LoadCommandValue.LC_FUNCTION_STARTS(cmd, try FunctionStarts(parsing: &span)))
+            case .LC_LOAD_DYLIB:
+                guard let cmd = loadCommand as? LC_LOAD_DYLIB else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_LOAD_DYLIB(cmd))
+            case .LC_LOAD_WEAK_DYLIB:
+                guard let cmd = loadCommand as? LC_LOAD_WEAK_DYLIB else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_LOAD_WEAK_DYLIB(cmd))
+            case .LC_DYLD_ENVIRONMENT:
+                guard let cmd = loadCommand as? LC_DYLD_ENVIRONMENT else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_DYLD_ENVIRONMENT(cmd))
+            case .LC_DYLD_INFO_ONLY:
+                guard let cmd = loadCommand as? LC_DYLD_INFO_ONLY else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_DYLD_INFO_ONLY(cmd))
+            case .LC_ENCRYPTION_INFO:
+                guard let cmd = loadCommand as? LC_ENCRYPTION_INFO else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_ENCRYPTION_INFO(cmd))
+            case .LC_ENCRYPTION_INFO_64:
+                guard let cmd = loadCommand as? LC_ENCRYPTION_INFO_64 else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_ENCRYPTION_INFO_64(cmd))
+            case .LC_SEGMENT:
+                guard let cmd = loadCommand as? LC_SEGMENT else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_SEGMENT(cmd))
             case .LC_SYMTAB:
-                if var cmd = loadCommands[i] as? LC_SYMTAB {
-                    try input.seek(toRange: machORange)
-                    try input.seek(toRelativeOffset: cmd.symbolTableOffset)
-                    var span = try input.sliceSpan(byteCount: Int(cmd.symbolTableSize))
-                    
-                    let symbols:[Symbol] = try Array(parsing: &span, count: Int(cmd.numSymbols)) { input in
-                        var symbolSpan = try input.sliceSpan(byteCount: is64Bit ? Symbol.size64 : Symbol.size32)
-                        return try Symbol(parsing: &symbolSpan, endianness: endianness, is64it: is64Bit)
-                    }
-                    
-                    let strings: [String] = try symbols.map { symbol in
-                        try input.seek(toRange: machORange)
-                        try input.seek(toRelativeOffset: cmd.stringTableOffset+symbol.n_strx)
-                        return try String(parsingNulTerminated: &input)
-                    }
-                    
-                    cmd.symbols = symbols
-                    cmd.strings = strings
-                    
-                    loadCommands[i] = cmd
+                guard let cmd = loadCommand as? LC_SYMTAB else { throw MachOError.unknownError }
+                
+                try input.seek(toRange: machORange)
+                try input.seek(toRelativeOffset: cmd.symbolTableOffset)
+                var span = try input.sliceSpan(byteCount: Int(cmd.symbolTableSize))
+                
+                let symbols:[Symbol] = try Array(parsing: &span, count: Int(cmd.numSymbols)) { input in
+                    var symbolSpan = try input.sliceSpan(byteCount: is64Bit ? Symbol.size64 : Symbol.size32)
+                    return try Symbol(parsing: &symbolSpan, endianness: endianness, is64it: is64Bit)
                 }
-            default: break
+                
+                let strings: [String] = try symbols.map { symbol in
+                    try input.seek(toRange: machORange)
+                    try input.seek(toRelativeOffset: cmd.stringTableOffset+symbol.n_strx)
+                    return try String(parsingNulTerminated: &input)
+                }
+                
+                loadCommands.append(LoadCommandValue.LC_SYMTAB(cmd, symbols, strings))
+            case .LC_SYMSEG:
+                guard let cmd = loadCommand as? LC_SYMSEG else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_SYMSEG(cmd))
+            case .LC_THREAD:
+                guard let cmd = loadCommand as? LC_THREAD else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_THREAD(cmd))
+            case .LC_UNIXTHREAD:
+                guard let cmd = loadCommand as? LC_UNIXTHREAD else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_UNIXTHREAD(cmd))
+            case .LC_LOADFVMLIB:
+                guard let cmd = loadCommand as? LC_LOADFVMLIB else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_LOADFVMLIB(cmd))
+            case .LC_IDFVMLIB:
+                guard let cmd = loadCommand as? LC_IDFVMLIB else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_IDFVMLIB(cmd))
+            case .LC_IDENT:
+                guard let cmd = loadCommand as? LC_IDENT else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_IDENT(cmd))
+            case .LC_FVMFILE:
+                guard let cmd = loadCommand as? LC_FVMFILE else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_FVMFILE(cmd))
+            case .LC_PREPAGE:
+                guard let cmd = loadCommand as? LC_PREPAGE else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_PREPAGE(cmd))
+            case .LC_DYSYMTAB:
+                guard let cmd = loadCommand as? LC_DYSYMTAB else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_DYSYMTAB(cmd))
+            case .LC_LOAD_DYLINKER:
+                guard let cmd = loadCommand as? LC_LOAD_DYLINKER else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_LOAD_DYLINKER(cmd))
+            case .LC_ID_DYLINKER:
+                guard let cmd = loadCommand as? LC_ID_DYLINKER else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_ID_DYLINKER(cmd))
+            case .LC_PREBOUND_DYLIB:
+                guard let cmd = loadCommand as? LC_PREBOUND_DYLIB else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_PREBOUND_DYLIB(cmd))
+            case .LC_ROUTINES:
+                guard let cmd = loadCommand as? LC_ROUTINES else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_ROUTINES(cmd))
+            case .LC_SUB_FRAMEWORK:
+                guard let cmd = loadCommand as? LC_SUB_FRAMEWORK else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_SUB_FRAMEWORK(cmd))
+            case .LC_SUB_UMBRELLA:
+                guard let cmd = loadCommand as? LC_SUB_UMBRELLA else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_SUB_UMBRELLA(cmd))
+            case .LC_SUB_CLIENT:
+                guard let cmd = loadCommand as? LC_SUB_CLIENT else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_SUB_CLIENT(cmd))
+            case .LC_SUB_LIBRARY:
+                guard let cmd = loadCommand as? LC_SUB_LIBRARY else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_SUB_LIBRARY(cmd))
+            case .LC_TWOLEVEL_HINTS:
+                guard let cmd = loadCommand as? LC_TWOLEVEL_HINTS else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_TWOLEVEL_HINTS(cmd))
+            case .LC_PREBIND_CKSUM:
+                guard let cmd = loadCommand as? LC_PREBIND_CKSUM else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_PREBIND_CKSUM(cmd))
+            case .LC_SEGMENT_64:
+                guard let cmd = loadCommand as? LC_SEGMENT_64 else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_SEGMENT_64(cmd))
+            case .LC_ROUTINES_64:
+                guard let cmd = loadCommand as? LC_ROUTINES_64 else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_ROUTINES_64(cmd))
+            case .LC_RPATH:
+                guard let cmd = loadCommand as? LC_RPATH else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_RPATH(cmd))
+            case .LC_SEGMENT_SPLIT_INFO:
+                guard let cmd = loadCommand as? LC_SEGMENT_SPLIT_INFO else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_SEGMENT_SPLIT_INFO(cmd))
+            case .LC_REEXPORT_DYLIB:
+                guard let cmd = loadCommand as? LC_REEXPORT_DYLIB else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_REEXPORT_DYLIB(cmd))
+            case .LC_LAZY_LOAD_DYLIB:
+                guard let cmd = loadCommand as? LC_LAZY_LOAD_DYLIB else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_LAZY_LOAD_DYLIB(cmd))
+            case .LC_DYLD_INFO:
+                guard let cmd = loadCommand as? LC_DYLD_INFO else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_DYLD_INFO(cmd))
+            case .LC_LOAD_UPWARD_DYLIB:
+                guard let cmd = loadCommand as? LC_LOAD_UPWARD_DYLIB else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_LOAD_UPWARD_DYLIB(cmd))
+            case .LC_VERSION_MIN_MACOSX:
+                guard let cmd = loadCommand as? LC_VERSION_MIN_MACOSX else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_VERSION_MIN_MACOSX(cmd))
+            case .LC_DYLD_CHAINED_FIXUPS:
+                guard let cmd = loadCommand as? LC_DYLD_CHAINED_FIXUPS else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_DYLD_CHAINED_FIXUPS(cmd))
+            case .LC_VERSION_MIN_IPHONEOS:
+                guard let cmd = loadCommand as? LC_VERSION_MIN_IPHONEOS else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_VERSION_MIN_IPHONEOS(cmd))
+            case .LC_MAIN:
+                guard let cmd = loadCommand as? LC_MAIN else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_MAIN(cmd))
+            case .LC_DATA_IN_CODE:
+                guard let cmd = loadCommand as? LC_DATA_IN_CODE else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_DATA_IN_CODE(cmd))
+            case .LC_SOURCE_VERSION:
+                guard let cmd = loadCommand as? LC_SOURCE_VERSION else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_SOURCE_VERSION(cmd))
+            case .LC_DYLIB_CODE_SIGN_DRS:
+                guard let cmd = loadCommand as? LC_DYLIB_CODE_SIGN_DRS else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_DYLIB_CODE_SIGN_DRS(cmd))
+            case .LC_LINKER_OPTION:
+                guard let cmd = loadCommand as? LC_LINKER_OPTION else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_LINKER_OPTION(cmd))
+            case .LC_LINKER_OPTIMIZATION_HINT:
+                guard let cmd = loadCommand as? LC_LINKER_OPTIMIZATION_HINT else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_LINKER_OPTIMIZATION_HINT(cmd))
+            case .LC_VERSION_MIN_TVOS:
+                guard let cmd = loadCommand as? LC_VERSION_MIN_TVOS else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_VERSION_MIN_TVOS(cmd))
+            case .LC_VERSION_MIN_WATCHOS:
+                guard let cmd = loadCommand as? LC_VERSION_MIN_WATCHOS else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_VERSION_MIN_WATCHOS(cmd))
+            case .LC_NOTE:
+                guard let cmd = loadCommand as? LC_NOTE else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_NOTE(cmd))
+            case .LC_BUILD_VERSION:
+                guard let cmd = loadCommand as? LC_BUILD_VERSION else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_BUILD_VERSION(cmd))
+            case .LC_DYLD_EXPORTS_TRIE:
+                guard let cmd = loadCommand as? LC_DYLD_EXPORTS_TRIE else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_DYLD_EXPORTS_TRIE(cmd))
+            case .LC_FILESET_ENTRY:
+                guard let cmd = loadCommand as? LC_FILESET_ENTRY else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_FILESET_ENTRY(cmd))
+            case .LC_ATOM_INFO:
+                guard let cmd = loadCommand as? LC_ATOM_INFO else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_ATOM_INFO(cmd))
+            case .LC_FUNCTION_VARIANTS:
+                guard let cmd = loadCommand as? LC_FUNCTION_VARIANTS else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_FUNCTION_VARIANTS(cmd))
+            case .LC_FUNCTION_VARIANT_FIXUPS:
+                guard let cmd = loadCommand as? LC_FUNCTION_VARIANT_FIXUPS else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_FUNCTION_VARIANT_FIXUPS(cmd))
+            case .LC_TARGET_TRIPLE:
+                guard let cmd = loadCommand as? LC_TARGET_TRIPLE else { throw MachOError.unknownError }
+                loadCommands.append(LoadCommandValue.LC_TARGET_TRIPLE(cmd))
             }
         }
         
@@ -190,50 +406,75 @@ extension MachO {
     }
     
     public static func isMachO(data: Data) -> Bool {
-        let magic = try? data.withParserSpan { input in
+        let magic = data.withParserSpan { input in
             return try? Magic(parsing: &input, endianness: .little)
         }
         return magic != nil
     }
+
+    public func getLoadCommandByType(_ type: LoadCommandHeader.ID) -> LoadCommand? {
+        return self.rawCommands.first(where: { $0.header.id == type })
+    }
     
-//    public func getSignature() -> (LC_CODE_SIGNATURE, CodeSignatureSuperBlob)? {
-//        guard
-//            let value = loadCommandsValues.first(where: {
-//                switch $0 {
-//                case .LC_CODE_SIGNATURE(let cmd, let signature): true
-//                default: false
-//                }
-//            }),
-//            case .LC_CODE_SIGNATURE(let cmd, let signature) = value,
-//            let lc_signature = cmd as? LC_CODE_SIGNATURE
-//        else { return nil }
-//        
-//        return (lc_signature, signature)
-//    }
+    public func getSignature() -> (LC_CODE_SIGNATURE, CodeSignatureSuperBlob)? {
+        guard
+            let lc = loadCommands.first(where: {
+                switch $0 {
+                case .LC_CODE_SIGNATURE(_,_): true
+                default: false
+                }
+            }),
+            case let .LC_CODE_SIGNATURE(cmd, signature) = lc
+        else { return nil }
+        
+        return (cmd,signature)
+    }
     
-//    public func getCodeDirectory() -> CodeDirectory? {
-//        guard
-//            let (cmd,signature) = getSignature(),
-//            let cdSlot = signature.slots.first(where: { $0.type == .cdCodeDirectorySlot }),
-//            case .CodeDirectoryValue(let cd) = cdSlot.value
-//        else { return nil }
-//        
-//        return nil
-//    }
+    public func getCodeDirectory() -> CodeSignatureCodeDirectory? {
+        guard
+            let (_,signature) = getSignature(),
+            let cd = signature.blobs.first(where: {
+                switch $0 {
+                case .CodeDirectory(_,_): true
+                default: false
+                }
+            }),
+            case let .CodeDirectory(_, _cd) = cd
+        else { return nil }
+        
+        return _cd
+    }
     
-//    public func getSegmentByName(_ name: String) -> LC_SEGMENT_64? {
-//        guard
-//            let value = loadCommandsValues.first(where: {
-//                switch $0 {
-//                case .LC(let cmd, let signature): true
-//                default: false
-//                }
-//            }),
-//            case .LC_CODE_SIGNATURE(let cmd, let signature) = value,
-//            let lc_signature = cmd as? LC_CODE_SIGNATURE
-//        else { return nil }
-//        
-//        return (lc_signature, signature)
+    public func getSegmentByName(_ name: String) -> LC_SEGMENT_64? {
+        guard
+            let lc = loadCommands.first(where: {
+                switch $0 {
+                case .LC_SEGMENT_64(let cmd):
+                    cmd.name == name
+                default: false
+                }
+            }),
+            case let .LC_SEGMENT_64(cmd) = lc
+        else { return nil }
+        
+        return cmd
+    }
+    
+//    public func getHash(_ range: Range<Data.Index>, type: CodeSignatureHashType) -> String {
+//        switch type {
+//        case .NO_HASH:
+//            return ""
+//        case .SHA1:
+//            return data[range].sha1
+//        case .SHA256:
+//            return data[range].sha256
+//        case .SHA256_TRUNCATED:
+//            return String(data[range].sha256.prefix(32))
+//        case .SHA384:
+//            return data[range].sha384
+//        case .SHA512:
+//            return data[range].sha512
+//        }
 //    }
 }
 
@@ -247,6 +488,6 @@ extension MachO: Displayable {
         ]
     }
     public var children: [Displayable]? {
-        [header] + loadCommands
+        [header] + rawCommands
     }
 }

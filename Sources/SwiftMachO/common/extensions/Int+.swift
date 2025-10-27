@@ -9,4 +9,8 @@ extension Int {
     public var hexDescription: String {
         String(format: "%08x", self)
     }
+    
+    public func align(_ align: Int) -> Int {
+        return ((self + align-1) & -align)
+    }
 }

@@ -11,7 +11,7 @@ import BinaryParsing
 
 @AutoOptionSet
 public struct VM_PROT: OptionSet, Sendable {
-    public static let VM_PROT_NONE = VM_PROT(rawValue: 0x00000000)
+    // public static let VM_PROT_NONE = VM_PROT(rawValue: 0x00000000)
     public static let VM_PROT_READ = VM_PROT(rawValue: 0x00000001)
     public static let VM_PROT_WRITE = VM_PROT(rawValue: 0x00000002)
     public static let VM_PROT_EXECUTE = VM_PROT(rawValue: 0x00000004)
@@ -30,7 +30,7 @@ public struct VM_PROT: OptionSet, Sendable {
 
 @AutoOptionSet
 public struct SegmentFlags: OptionSet, Sendable {
-    public static let NONE = SegmentFlags(rawValue: 0)
+    // public static let NONE = SegmentFlags(rawValue: 0)
     public static let HIGH_VM = SegmentFlags(rawValue: 0x00000001)
     public static let FIXED_VM_LIBRARY = SegmentFlags(rawValue: 0x00000002)
     public static let NO_RELOCATIONS = SegmentFlags(rawValue: 0x00000004)

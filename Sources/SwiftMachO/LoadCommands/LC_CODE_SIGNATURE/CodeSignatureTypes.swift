@@ -8,9 +8,9 @@
 import Foundation
 
 @CaseName
-public enum MachOCodeSignatureMagic: UInt32 {
+public enum CodeSignatureBlobMagic: UInt32 {
     case CodeDirectory = 0xFADE0C02
-    // case CodeRequirement = 0xFADE0C00
+    case CodeRequirement = 0xFADE0C00
     case CodeRequirements = 0xFADE0C01
     case CodeEntitlements = 0xFADE7171
     case CodeEntitlementsDER = 0xFADE7172
@@ -19,7 +19,7 @@ public enum MachOCodeSignatureMagic: UInt32 {
 }
 
 @CaseName
-public enum MachOCodeSignatureHashType: UInt8 {
+public enum CodeSignatureHashType: UInt8 {
     case NO_HASH = 0
     case SHA1 = 1
     case SHA256 = 2

@@ -64,18 +64,47 @@ struct ParseMachO: ParsableCommand {
     
     // The main logic is now in the `run()` method.
     func run() throws {
-        let value = 42
-        let result = #stringify(value)
-        print(result) // (42, "value")
-        
-        return
-        
         guard let file = try? MachOFile(URL(fileURLWithPath: filePath)) else {
             print("Could not parse Mach-O at \(filePath)")
             return
         }
         
-        TreePrinter.printTree(file, title: file.description)
+        // TreePrinter.printTree(file, title: file.description)
+
+        if case .fat(let fatBinary) = file.file {
+            for macho: MachO in fatBinary.machos {
+                if let lc = macho.getLoadCommandByType(.LC_CODE_SIGNATURE),
+                   let lcSignature = lc as? LC_CODE_SIGNATURE,
+                   let signature = lcSignature.signature {
+                    
+                    for blob in signature.blobs {
+                        print(blob.description)
+                        if case .CodeRequirements(let blob, let codeSignatureCodeRequirements) = blob {
+                            for (header, requirement) in codeSignatureCodeRequirements.requirements {
+                                if let expression = try? requirement.buildExpressionString() {
+                                    print("******* \(expression)")
+                                }
+                            }
+                        }
+                    }
+                }
+                try file.validateSignature(macho)
+            }
+        } else if case .macho(let macho) = file.file {
+            if let lc = macho.getLoadCommandByType(.LC_CODE_SIGNATURE),
+                let lcSignature = lc as? LC_CODE_SIGNATURE,
+                let signature = lcSignature.signature {
+                
+                for blob in signature.blobs {
+                    if case .CodeDirectory(let blob, let magic) = blob {
+                        print("Code Directory Identifier: \(blob.type), \(magic.description)")
+                    }   
+                }
+
+            }
+        }
+
+
         
 //        switch file.file {
 //        case .fat(let fatBinary):

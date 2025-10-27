@@ -12,3 +12,7 @@ extension Range<Int> {
         "\(lowerBound.hexDescription) - \(upperBound.hexDescription)"
     }
 }
+
+public func +<T: Numeric & Comparable>(lhs: Range<T>, rhs: T) -> Range<T> {
+    return (lhs.lowerBound + rhs)..<(lhs.upperBound + rhs)
+}
