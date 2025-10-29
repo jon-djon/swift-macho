@@ -56,7 +56,7 @@ public enum LoadCommandValue {
     case LC_FUNCTION_STARTS(LC_FUNCTION_STARTS, FunctionStarts)
     case LC_DYLD_ENVIRONMENT(LC_DYLD_ENVIRONMENT)
     case LC_MAIN(LC_MAIN)
-    case LC_DATA_IN_CODE(LC_DATA_IN_CODE)
+    case LC_DATA_IN_CODE(LC_DATA_IN_CODE, [DataInCode])
     case LC_SOURCE_VERSION(LC_SOURCE_VERSION)
     case LC_DYLIB_CODE_SIGN_DRS(LC_DYLIB_CODE_SIGN_DRS)
     case LC_ENCRYPTION_INFO_64(LC_ENCRYPTION_INFO_64)
@@ -120,7 +120,7 @@ extension LoadCommandValue {
         case .LC_DYLD_CHAINED_FIXUPS(let cmd): cmd
         case .LC_VERSION_MIN_IPHONEOS(let cmd): cmd
         case .LC_MAIN(let cmd): cmd
-        case .LC_DATA_IN_CODE(let cmd): cmd
+        case .LC_DATA_IN_CODE(let cmd, _): cmd
         case .LC_SOURCE_VERSION(let cmd): cmd
         case .LC_DYLIB_CODE_SIGN_DRS(let cmd): cmd
         case .LC_LINKER_OPTION(let cmd): cmd
@@ -154,6 +154,13 @@ extension LoadCommandValue: Displayable {
             ]
         case .LC_FUNCTION_STARTS(let cmd, let starts):
             cmd.fields + starts.fields
+        case .LC_DATA_IN_CODE(let cmd, let codes):
+            cmd.fields + [
+                .init(label: "Codes", stringValue: "\(codes.count) Codes", offset: 0, size: 0, children: codes.enumerated().map { index, code in
+                        .init(label: "Code \(index)", stringValue: code.kind.description, offset: 0, size: 0, children: code.fields, obj: code)
+                }, obj: self)
+            ]
+        
         default: command.fields
         }
     }

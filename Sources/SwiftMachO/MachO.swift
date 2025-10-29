@@ -289,7 +289,17 @@ extension MachO: ExpressibleByParsing {
                 loadCommands.append(LoadCommandValue.LC_MAIN(cmd))
             case .LC_DATA_IN_CODE:
                 guard let cmd = loadCommand as? LC_DATA_IN_CODE else { throw MachOError.unknownError }
-                loadCommands.append(LoadCommandValue.LC_DATA_IN_CODE(cmd))
+                
+                try input.seek(toRange: machORange)
+                try input.seek(toRelativeOffset: cmd.offset)
+                var span = try input.sliceSpan(byteCount: Int(cmd.size))
+                
+                let datas = try Array(parsing: &span, count: Int(cmd.size) / DataInCode.size) { input in
+                    var span = try input.sliceSpan(byteCount: DataInCode.size)
+                    return try DataInCode(parsing: &span, endianness: endianness)
+                }
+                
+                loadCommands.append(LoadCommandValue.LC_DATA_IN_CODE(cmd, datas))
             case .LC_SOURCE_VERSION:
                 guard let cmd = loadCommand as? LC_SOURCE_VERSION else { throw MachOError.unknownError }
                 loadCommands.append(LoadCommandValue.LC_SOURCE_VERSION(cmd))

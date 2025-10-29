@@ -29,10 +29,13 @@ extension LC_FUNCTION_STARTS {
 }
 
 public struct FunctionStarts: Parseable {
-    public let range: Range<Int>
     public let starts: [UInt]  // These are offsets from the start of the text section vmaddress
     public let offsets: [Int]
     
+    public let range: Range<Int>
+}
+
+extension FunctionStarts {
     public init(parsing input: inout ParserSpan) throws {
         self.range = input.parserRange.range
         var starts: [UInt] = []
