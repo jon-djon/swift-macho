@@ -15,10 +15,6 @@ public struct LC_SYMTAB: LoadCommand {
     public let stringTableOffset: UInt32
     public let stringTableSize: UInt32
     
-    // Deferred parsing
-    var symbols:[Symbol]? = nil
-    var strings: [String]? = nil
-    
     public let range: Range<Int>
     
     public var symbolTableSize: Int {
@@ -43,7 +39,7 @@ extension LC_SYMTAB {
 }
 
 extension LC_SYMTAB: Displayable {
-    public var title: String { "\(Self.self) TODO" }
+    public var title: String { "\(Self.self)" }
     public var description: String { "" }
     public var fields: [DisplayableField] {
         [

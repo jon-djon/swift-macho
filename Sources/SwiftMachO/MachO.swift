@@ -12,67 +12,7 @@ public struct MachO: Parseable {
     public var signature: CodeSignatureSuperBlob? = nil
     
     public var rawCommands: [LoadCommand] {
-        loadCommands.map {
-            switch $0 {
-            case .LC_CODE_SIGNATURE(let cmd, _): cmd
-            case .LC_UUID(let cmd): cmd
-            case .LC_FUNCTION_STARTS(let cmd, _): cmd
-            case .LC_LOAD_DYLIB(let cmd): cmd
-            case .LC_LOAD_WEAK_DYLIB(let cmd): cmd
-            case .LC_DYLD_ENVIRONMENT(let cmd): cmd
-            case .LC_DYLD_INFO_ONLY(let cmd): cmd
-            case .LC_ENCRYPTION_INFO(let cmd): cmd
-            case .LC_ENCRYPTION_INFO_64(let cmd): cmd
-            case .LC_SEGMENT(let cmd): cmd
-            case .LC_SYMTAB(let cmd, _, _): cmd
-            case .LC_SYMSEG(let cmd): cmd
-            case .LC_THREAD(let cmd): cmd
-            case .LC_UNIXTHREAD(let cmd): cmd
-            case .LC_LOADFVMLIB(let cmd): cmd
-            case .LC_IDFVMLIB(let cmd): cmd
-            case .LC_IDENT(let cmd): cmd
-            case .LC_FVMFILE(let cmd): cmd
-            case .LC_PREPAGE(let cmd): cmd
-            case .LC_DYSYMTAB(let cmd): cmd
-            case .LC_LOAD_DYLINKER(let cmd): cmd
-            case .LC_ID_DYLINKER(let cmd): cmd
-            case .LC_PREBOUND_DYLIB(let cmd): cmd
-            case .LC_ROUTINES(let cmd): cmd
-            case .LC_SUB_FRAMEWORK(let cmd): cmd
-            case .LC_SUB_UMBRELLA(let cmd): cmd
-            case .LC_SUB_CLIENT(let cmd): cmd
-            case .LC_SUB_LIBRARY(let cmd): cmd
-            case .LC_TWOLEVEL_HINTS(let cmd): cmd
-            case .LC_PREBIND_CKSUM(let cmd): cmd
-            case .LC_SEGMENT_64(let cmd): cmd
-            case .LC_ROUTINES_64(let cmd): cmd
-            case .LC_RPATH(let cmd): cmd
-            case .LC_SEGMENT_SPLIT_INFO(let cmd): cmd
-            case .LC_REEXPORT_DYLIB(let cmd): cmd
-            case .LC_LAZY_LOAD_DYLIB(let cmd): cmd
-            case .LC_DYLD_INFO(let cmd): cmd
-            case .LC_LOAD_UPWARD_DYLIB(let cmd): cmd
-            case .LC_VERSION_MIN_MACOSX(let cmd): cmd
-            case .LC_DYLD_CHAINED_FIXUPS(let cmd): cmd
-            case .LC_VERSION_MIN_IPHONEOS(let cmd): cmd
-            case .LC_MAIN(let cmd): cmd
-            case .LC_DATA_IN_CODE(let cmd): cmd
-            case .LC_SOURCE_VERSION(let cmd): cmd
-            case .LC_DYLIB_CODE_SIGN_DRS(let cmd): cmd
-            case .LC_LINKER_OPTION(let cmd): cmd
-            case .LC_LINKER_OPTIMIZATION_HINT(let cmd): cmd
-            case .LC_VERSION_MIN_TVOS(let cmd): cmd
-            case .LC_VERSION_MIN_WATCHOS(let cmd): cmd
-            case .LC_NOTE(let cmd): cmd
-            case .LC_BUILD_VERSION(let cmd): cmd
-            case .LC_DYLD_EXPORTS_TRIE(let cmd): cmd
-            case .LC_FILESET_ENTRY(let cmd): cmd
-            case .LC_ATOM_INFO(let cmd): cmd
-            case .LC_FUNCTION_VARIANTS(let cmd): cmd
-            case .LC_FUNCTION_VARIANT_FIXUPS(let cmd): cmd
-            case .LC_TARGET_TRIPLE(let cmd): cmd
-            }
-        }
+        loadCommands.map { $0.command }
     }
     
     @CaseName
@@ -197,7 +137,7 @@ extension MachO: ExpressibleByParsing {
         for loadCommand in cmds {
             switch loadCommand.header.id {
             case .LC_CODE_SIGNATURE:
-                guard let cmd = loadCommand as? LC_CODE_SIGNATURE else { throw MachOError.unknownError }
+                guard var cmd = loadCommand as? LC_CODE_SIGNATURE else { throw MachOError.unknownError }
                     
                 try input.seek(toRange: machORange)
                 try input.seek(toRelativeOffset: cmd.offset)
@@ -488,6 +428,6 @@ extension MachO: Displayable {
         ]
     }
     public var children: [Displayable]? {
-        [header] + rawCommands
+        [header] + loadCommands
     }
 }

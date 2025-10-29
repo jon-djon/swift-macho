@@ -8,7 +8,7 @@
 import SwiftSyntaxMacros
 import SwiftSyntaxMacrosTestSupport
 import XCTest
-import EnumDescriptionMacros
+import SwiftMachOMacros
 
 final class EnumDescriptionTests: XCTestCase {
     func testCaseNameMacro() {

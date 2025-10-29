@@ -50,6 +50,18 @@ extension CodeSignatureCodeEntitlements: Displayable {
         "CodeSignatureCodeEntitlements"
     }
     
+    public var fields: [DisplayableField] {
+        [
+            .init(label: "Magic", stringValue: magic.description, offset: 0, size: 4, children: nil, obj: self),
+            .init(label: "Length", stringValue: length.description, offset: 4, size: 4, children: nil, obj: self),
+            .init(label: "Entitlements", stringValue: "\(entitlements.count) Entitlements", offset: 8, size: Int(length),
+                  children: entitlements.map { (entitlement: String, value: Any) in
+                        .init(label: entitlement, stringValue: "TODO", offset: 0, size: 0, children: nil, obj: self)
+                  },
+            obj: self),
+        ]
+    }
+    
     public var children: [any Displayable]? {
         []
     }

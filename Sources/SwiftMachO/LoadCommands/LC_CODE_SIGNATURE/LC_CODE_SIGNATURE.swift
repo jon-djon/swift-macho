@@ -14,9 +14,6 @@ public struct LC_CODE_SIGNATURE: LoadCommand, LoadCommandLinkEdit {
     
     public let offset: UInt32  // Offset is relative to the beginning of the MachO
     public let size: UInt32
-    
-    // Deferred Parsing
-    public var signature: CodeSignatureSuperBlob? = nil
 }
 
 extension LC_CODE_SIGNATURE {
@@ -42,8 +39,5 @@ extension LC_CODE_SIGNATURE: Displayable {
             .init(label: "Size", stringValue: size.description, offset: 12, size: 4, children: nil, obj: self),
         ]
     }
-    public var children: [Displayable]? {
-        guard let signature = signature else { return nil }
-        return [signature]
-    }
+    public var children: [Displayable]? { nil }
 }

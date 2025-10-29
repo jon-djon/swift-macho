@@ -29,6 +29,13 @@ public struct Symbol: Parseable {
             case .bit64(let value): value.description
             }
         }
+        
+        public var size: Int {
+            switch self {
+            case .bit32: 4
+            case .bit64: 8
+            }
+        }
     }
 
     @CaseName
@@ -97,4 +104,19 @@ extension Symbol {
             self.n_val = NVAL.bit32(try UInt32(parsing: &input, endianness: endianness))
         }
     }
+}
+
+extension Symbol: Displayable {
+    public var title: String { "\(Self.self) TODO" }
+    public var description: String { "" }
+    public var fields: [DisplayableField] {
+        [
+            .init(label: "n_strx", stringValue: n_strx.description, offset: 0, size: 4, children: nil, obj: self),
+            .init(label: "n_type", stringValue: n_type.description, offset: 4, size: 1, children: nil, obj: self),
+            .init(label: "n_sect", stringValue: n_sect.description, offset: 5, size: 1, children: nil, obj: self),
+            .init(label: "n_desc", stringValue: n_desc.description, offset: 6, size: 2, children: nil, obj: self),
+            .init(label: "n_val", stringValue: n_val.description, offset: 8, size: n_val.size, children: nil, obj: self),
+        ]
+    }
+    public var children: [Displayable]? { nil }
 }

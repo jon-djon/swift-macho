@@ -29,7 +29,7 @@ extension LC_UUID {
         
         self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
         guard header.id == .LC_UUID else {
-            throw MachOError.LoadCommandError("Invalid LC_FUNCTION_STARTS")
+            throw MachOError.LoadCommandError("Invalid LC_UUID")
         }
         self._uuid = try InlineArray<16, UInt8>(parsing: &input)
     }

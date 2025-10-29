@@ -163,7 +163,7 @@ extension LC_SEGMENT_64: Displayable {
             .init(label: "Command ID", stringValue: header.id.description, offset: 0, size: 4, children: nil, obj: self),
             .init(label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4, children: nil, obj: self),
             .init(label: "Name", stringValue: name, offset: 8, size: 16, children: nil, obj: self),
-            .init(label: "VM Address", stringValue: vmaddr.description, offset: 24, size: 8, children: nil, obj: self),
+            .init(label: "VM Address", stringValue: vmaddr.hexDescription, offset: 24, size: 8, children: nil, obj: self),
             .init(label: "VM Size", stringValue: vmsize.description, offset: 32, size: 8, children: nil, obj: self),
             .init(label: "File Offset", stringValue: fileOffset.description, offset: 40, size: 8, children: nil, obj: self),
             .init(label: "File Size", stringValue: fileSize.description, offset: 48, size: 8, children: nil, obj: self),

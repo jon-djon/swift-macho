@@ -8,7 +8,7 @@ public enum MachOHeaderError: Error, CustomStringConvertible {
     public var description: String {
         switch self {
         case .badMagicValue(let value):
-            return "MachOHeaderError: The file format with magic value '\(value.hex)' is not supported."
+            return "MachOHeaderError: The file format with magic value '\(value.hexDescription)' is not supported."
         case .unknownError:
             return "An unknown error occurred."
         }
@@ -103,15 +103,15 @@ extension MachOHeader: Displayable {
             .init(label: "File Type", stringValue: fileType.description, offset: 8, size: 4, children: nil, obj: self),
             .init(label: "Number of Commands", stringValue: ncmds.description, offset: 12, size: 4, children: nil, obj: self),
             .init(label: "Size of Commands", stringValue: sizeOfCmds.description, offset: 16, size: 4, children: nil, obj: self),
-            .init(label: "Flags", stringValue: "0x\(flags.rawValue.hex)", offset: 20, size: 4,
+            .init(label: "Flags", stringValue: "0x\(flags.rawValue.hexDescription)", offset: 20, size: 4,
                   children: flags.activeFlags.enumerated().map { (index: Int, flag: (Flags, String))  in
-                        .init(label: flag.1, stringValue: "0x\(flag.0.rawValue.hex)", offset: 24, size: 4, children: nil, obj: self)
+                        .init(label: flag.1, stringValue: "0x\(flag.0.rawValue.hexDescription)", offset: 24, size: 4, children: nil, obj: self)
                   },
                   obj: self
             ),
         ]
         if let reserved = reserved {
-            fields.append(.init(label: "Reserved", stringValue: "0x\(reserved.hex)", offset: 24, size: 4, children: nil, obj: self))
+            fields.append(.init(label: "Reserved", stringValue: "0x\(reserved.hexDescription)", offset: 24, size: 4, children: nil, obj: self))
         }
         return fields
     }

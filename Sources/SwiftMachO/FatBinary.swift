@@ -9,7 +9,7 @@ public enum FatBinaryError: Error, CustomStringConvertible {
     public var description: String {
         switch self {
         case .badMagicValue(let value):
-            return "The file format with magic value '\(value.hex)' is not supported."
+            return "The file format with magic value '\(value.hexDescription)' is not supported."
         case .unknownError:
             return "An unknown error occurred."
         }

@@ -9,6 +9,13 @@ public class MachOFile {
     public let data: Data
     public let file: BinaryType
     public let range: Range<Int>
+    
+    public var machos: [MachO] {
+        switch file {
+        case .fat(let f): f.machos
+        case .macho(let m): [m]
+        }
+    }
 
     public enum BinaryType: CustomStringConvertible {
         case fat(FatBinary)
@@ -86,6 +93,26 @@ extension MachOFile: Displayable {
 
 
 extension MachOFile {
+    public static func isMachoFile(_ path: URL) -> Bool {
+        guard let fileHandle = try? FileHandle(forReadingFrom: path) else { return false }
+        
+        defer {
+            try? fileHandle.close()
+        }
+        
+        let data = fileHandle.readData(ofLength: 4)
+        
+        guard data.count == 4 else { return false }
+        
+        let magic = try? data.withParserSpan { input in
+            try Magic(parsing: &input, endianness: .little)
+        }
+        
+        guard magic != nil else { return false }
+        
+        return true
+    }
+    
     public func getHash(_ range: Range<Int>, type: CodeSignatureHashType) -> String {
         switch type {
         case .NO_HASH: ""
@@ -127,7 +154,6 @@ extension MachOFile {
         // TODO: Need to parse out the CMS signature (CodeSignatureBlobWrapper) to pull out the cdhash from the SignedData
         // guard hash.hash == c_hash else { throw MachOError.invalidSignature }
         print("CDHash: \(d.range) \(c_hash)")
-        
         
         for hash in cd.specialSlotHashes {
             // Sometimes the special hashes have all 00s

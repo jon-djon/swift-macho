@@ -13,9 +13,6 @@ public struct LC_FUNCTION_STARTS: LoadCommand, LoadCommandLinkEdit {
     public let header: LoadCommandHeader
     public let offset: UInt32
     public let size: UInt32
-    
-    // Deferred parsing
-    public var starts: FunctionStarts? = nil
 }
 
 extension LC_FUNCTION_STARTS {
@@ -33,15 +30,19 @@ extension LC_FUNCTION_STARTS {
 
 public struct FunctionStarts: Parseable {
     public let range: Range<Int>
-    public let starts: [Int]
+    public let starts: [UInt]  // These are offsets from the start of the text section vmaddress
+    public let offsets: [Int]
     
     public init(parsing input: inout ParserSpan) throws {
         self.range = input.parserRange.range
-        var starts: [Int] = []
+        var starts: [UInt] = []
+        var offsets: [Int] = []
         while !input.isEmpty {
-            starts.append(try Int(parsingLEB128: &input))
+            offsets.append(input.parserRange.lowerBound)
+            starts.append(try UInt(parsingLEB128: &input))  // Seems like there might be a bug here where values are not properly parsed?
         }
         self.starts = starts
+        self.offsets = offsets
     }
 }
 
@@ -56,6 +57,22 @@ extension LC_FUNCTION_STARTS: Displayable {
             .init(label: "Offset", stringValue: offset.description, offset: 8, size: 4, children: nil, obj: self),
             .init(label: "Size", stringValue: size.description, offset: 12, size: 4, children: nil, obj: self),
         ]
+    }
+    public var children: [Displayable]? { nil }
+}
+
+
+extension FunctionStarts: Displayable {
+    public var title: String { "\(Self.self)" }
+    public var description: String { "" }
+    public var fields: [DisplayableField] {
+        [
+            .init(label: "Function Starts", stringValue: "Starts \(starts.count)", offset: 0, size: range.count,
+                  children: starts.enumerated().map { index,value in
+                          .init(label: "Start \(index)", stringValue: value.hexDescription, offset: offsets[index], size: 0, children: nil, obj: self)
+                  }, obj: self)
+        ]
+        
     }
     public var children: [Displayable]? { nil }
 }
