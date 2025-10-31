@@ -39,6 +39,13 @@ extension CodeSignatureCodeEntitlementsDER: Displayable {
         "CodeSignatureCodeEntitlementsDER"
     }
     
+    public var fields: [DisplayableField] {
+        [
+            .init(label: "Magic", stringValue: magic.description, offset: 0, size: 4, children: nil, obj: self),
+            .init(label: "Length", stringValue: length.description, offset: 4, size: 4, children: nil, obj: self),
+        ]
+    }
+    
     public var children: [any Displayable]? {
         []
     }

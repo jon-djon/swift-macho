@@ -26,6 +26,7 @@ public struct CodeSignatureSuperBlob: Parseable {
             case .CodeEntitlementsDER(let blob, _): blob
             case .SuperBlob(let blob, _): blob
             case .BlobWrapper(let blob, _): blob
+            case .LaunchConstraint(let blob, _): blob
             }
         }
     }
@@ -56,6 +57,8 @@ public struct CodeSignatureSuperBlob: Parseable {
             case cdAlternateCodeDirectorySlots = 0x1000
             case cdAlternateCodeDirectoryLimit = 0x1005
             case cdSignatureSlot = 0x10000
+            case cdIdentificationSlot = 0x10001
+            case cdTicketSlot = 0x10002
         }
     }
 }
@@ -120,6 +123,7 @@ extension CodeSignatureSuperBlob: Displayable {
              case .CodeEntitlementsDER(_, let reqs): reqs
              case .SuperBlob(_, let reqs): reqs
              case .BlobWrapper(_, let reqs): reqs
+             case .LaunchConstraint(_, let reqs): reqs
              }
          }
     }

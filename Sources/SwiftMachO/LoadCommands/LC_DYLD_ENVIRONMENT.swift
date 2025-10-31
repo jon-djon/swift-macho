@@ -12,10 +12,10 @@ public struct LC_DYLD_ENVIRONMENT: LoadCommand {
     public let header: LoadCommandHeader
     public let range: Range<Int>
     
-    public let strOffset: UInt32
+    public let nameOffset: UInt32
     public let name: String
     
-    public var nameOffset: Int { self.range.lowerBound+Int(self.strOffset) }
+    public var absoluteOffset: Int { self.range.lowerBound+Int(self.nameOffset) }
 }
 
 extension LC_DYLD_ENVIRONMENT {
@@ -27,9 +27,9 @@ extension LC_DYLD_ENVIRONMENT {
             throw MachOError.LoadCommandError("Invalid LC_DYLD_ENVIRONMENT")
         }
         
-        self.strOffset = try UInt32(parsing: &input, endianness: endianness)
+        self.nameOffset = try UInt32(parsing: &input, endianness: endianness)
         
-        try input.seek(toAbsoluteOffset: self.range.lowerBound+Int(self.strOffset))
+        try input.seek(toAbsoluteOffset: self.range.lowerBound+Int(self.nameOffset))
         var span = input.extractRemaining()
         self.name = String(parsingUTF8: &span)
     }
@@ -42,8 +42,8 @@ extension LC_DYLD_ENVIRONMENT: Displayable {
         [
             .init(label: "Command ID", stringValue: header.id.description, offset: 0, size: 4, children: nil, obj: self),
             .init(label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4, children: nil, obj: self),
-            .init(label: "Name Offset", stringValue: strOffset.description, offset: 8, size: 4, children: nil, obj: self),
-            .init(label: "Name", stringValue: name, offset: Int(strOffset), size: name.count, children: nil, obj: self),
+            .init(label: "Name Offset", stringValue: nameOffset.description, offset: 8, size: 4, children: nil, obj: self),
+            .init(label: "Name", stringValue: name, offset: Int(nameOffset), size: name.count, children: nil, obj: self),
         ]
     }
     public var children: [Displayable]? { nil }

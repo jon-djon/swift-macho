@@ -1,6 +1,7 @@
 import Foundation
 import ArgumentParser
 import SwiftMachO
+import X509
 
 // MARK: - Tree Printer
 class TreePrinter {
@@ -64,36 +65,40 @@ struct ParseMachO: ParsableCommand {
     
     // The main logic is now in the `run()` method.
     func run() throws {
-        guard let file = try? MachOFile(URL(fileURLWithPath: filePath)) else {
+        // let path = "/usr/bin/modelmanagerdump"
+        let path = "/Library/Apple/System/Library/PrivateFrameworks/DeviceLink.framework/DeviceLink"
+        guard let file = try? MachOFile(URL(fileURLWithPath: path)) else {
             print("Could not parse Mach-O at \(filePath)")
             return
         }
+        
         
         // TreePrinter.printTree(file, title: file.description)
 
         if case .fat(let fatBinary) = file.file {
             for macho: MachO in fatBinary.machos {
-                if let lc = macho.getLoadCommandByType(.LC_CODE_SIGNATURE),
-                   let lcSignature = lc as? LC_CODE_SIGNATURE,
-                   let signature = lcSignature.signature {
+                if let (lc,signature) = macho.getSignature() {
                     
                     for blob in signature.blobs {
                         print(blob.description)
-                        if case .CodeRequirements(let blob, let codeSignatureCodeRequirements) = blob {
-                            for (header, requirement) in codeSignatureCodeRequirements.requirements {
-                                if let expression = try? requirement.buildExpressionString() {
-                                    print("******* \(expression)")
-                                }
-                            }
+                        if case .BlobWrapper(let blob, let wrapper) = blob {
+                            print(wrapper)
+                            try wrapper.cmsData.write(to: URL(fileURLWithPath: "/Users/jon/code/swift-macho/tmp/signeddata.bin"), options: [.atomic])
                         }
+                        
+//                        if case .CodeRequirements(let blob, let codeSignatureCodeRequirements) = blob {
+//                            for (header, requirement) in codeSignatureCodeRequirements.requirements {
+//                                if let expression = try? requirement.buildExpressionString() {
+//                                    print("******* \(expression)")
+//                                }
+//                            }
+//                        }
                     }
                 }
                 try file.validateSignature(macho)
             }
         } else if case .macho(let macho) = file.file {
-            if let lc = macho.getLoadCommandByType(.LC_CODE_SIGNATURE),
-                let lcSignature = lc as? LC_CODE_SIGNATURE,
-                let signature = lcSignature.signature {
+            if let (lc,signature) = macho.getSignature() {
                 
                 for blob in signature.blobs {
                     if case .CodeDirectory(let blob, let magic) = blob {

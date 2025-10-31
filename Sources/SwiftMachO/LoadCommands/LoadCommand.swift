@@ -4,6 +4,7 @@
 //
 //  Created by jon on 9/29/25.
 //
+import Foundation
 import BinaryParsing
 
 public protocol LoadCommand: CustomStringConvertible, Displayable, Parseable {
@@ -13,6 +14,28 @@ public protocol LoadCommand: CustomStringConvertible, Displayable, Parseable {
 public protocol LoadCommandLinkEdit {
     var offset: UInt32 { get }
     var size: UInt32 { get }
+}
+
+public struct LinkEditRaw: Parseable {
+    public let range: Range<Int>
+}
+
+
+extension LinkEditRaw {
+    public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
+        self.range = input.parserRange.range
+    }
+}
+
+extension LinkEditRaw: Displayable {
+    public var title: String { "LinkEditRaw" }
+    public var description: String { "LinkEditRaw" }
+    public var fields: [DisplayableField] {
+        [
+            .init(label: "Range", stringValue: range.description, offset: 0, size: 0, children: nil, obj: self)
+        ]
+    }
+    public var children: [Displayable]? { nil }
 }
 
 public enum LoadCommandValue {
@@ -61,7 +84,7 @@ public enum LoadCommandValue {
     case LC_DYLIB_CODE_SIGN_DRS(LC_DYLIB_CODE_SIGN_DRS)
     case LC_ENCRYPTION_INFO_64(LC_ENCRYPTION_INFO_64)
     case LC_LINKER_OPTION(LC_LINKER_OPTION)
-    case LC_LINKER_OPTIMIZATION_HINT(LC_LINKER_OPTIMIZATION_HINT)
+    case LC_LINKER_OPTIMIZATION_HINT(LC_LINKER_OPTIMIZATION_HINT, LinkEditRaw)
     case LC_VERSION_MIN_TVOS(LC_VERSION_MIN_TVOS)
     case LC_VERSION_MIN_WATCHOS(LC_VERSION_MIN_WATCHOS)
     case LC_NOTE(LC_NOTE)
@@ -124,7 +147,7 @@ extension LoadCommandValue {
         case .LC_SOURCE_VERSION(let cmd): cmd
         case .LC_DYLIB_CODE_SIGN_DRS(let cmd): cmd
         case .LC_LINKER_OPTION(let cmd): cmd
-        case .LC_LINKER_OPTIMIZATION_HINT(let cmd): cmd
+        case .LC_LINKER_OPTIMIZATION_HINT(let cmd, _): cmd
         case .LC_VERSION_MIN_TVOS(let cmd): cmd
         case .LC_VERSION_MIN_WATCHOS(let cmd): cmd
         case .LC_NOTE(let cmd): cmd
@@ -164,11 +187,20 @@ extension LoadCommandValue: Displayable {
         default: command.fields
         }
     }
+    // LC_SEGMENT_SPLIT_INFO, LC_FUNCTION_STARTS, LC_DATA_IN_CODE, LC_DYLIB_CODE_SIGN_DRS, LC_LINKER_OPTIMIZATION_HINT, LC_DYLD_EXPORTS_TRIE, or LC_DYLD_CHAINED_FIXUPS
     public var children: [Displayable]? {
         switch self {
         case .LC_CODE_SIGNATURE(_, let signature): [signature]
         case .LC_FUNCTION_STARTS(_, let starts): []
+        case .LC_LINKER_OPTIMIZATION_HINT(_, let le): [le]
+        // case .LC_SEGMENT_SPLIT_INFO(_, let le): [le]
+        // case .LC_DATA_IN_CODE(_, let codes): []
+//        case .LC_DYLIB_CODE_SIGN_DRS(_, let le): [le]
+//        case .LC_DYLD_EXPORTS_TRIE(_, let le): [le]
+//        case .LC_DYLD_CHAINED_FIXUPS(_, let le): [le]
         default: command.children
         }
     }
 }
+
+

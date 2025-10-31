@@ -7,15 +7,21 @@
 
 import Foundation
 
+// https://llvm.org/doxygen/BinaryFormat_2MachO_8h_source.html
+// https://github.com/blacktop/go-macho/blob/5a988ae3e613fa0d97a94429e1d1451d26f91b77/pkg/codesign/types/blob.go#L79
 @CaseName
 public enum CodeSignatureBlobMagic: UInt32 {
-    case CodeDirectory = 0xFADE0C02
     case CodeRequirement = 0xFADE0C00
     case CodeRequirements = 0xFADE0C01
+    case CodeDirectory = 0xFADE0C02
     case CodeEntitlements = 0xFADE7171
     case CodeEntitlementsDER = 0xFADE7172
     case SuperBlob = 0xFADE0CC0
     case BlobWrapper = 0xFADE0B01
+    case LaunchConstraint = 0xFADE8181
+    // case OldBlobWrapper = 0xFADE0B02
+    // case detachedSignature = 0xFADE0CC1
+    // case LibraryDependency 0xFADE0C05
 }
 
 @CaseName
@@ -75,14 +81,14 @@ public struct MachOCodeSignatureCodeDirectoryFlags: OptionSet, Sendable {
 
 // https://github.com/apple-oss-distributions/Security/blob/main/OSX/libsecurity_codesigning/lib/codedirectory.h
 @CaseName
-public enum CodeSignatureCodeDirectoryType: UInt32 {
+public enum CodeSignatureCodeDirectorySlotType: UInt32 {
     case CodeDirectorySlot = 0
     case InfoSlot = 1
     case RequirementsSlot = 2
     case ResourceDirSlot = 3
-    case TopDirectorySlot = 4
+    case TopDirectorySlot = 4  //Application
     case EntitlementSlot = 5
-    case RepSpecificSlot = 6
+    case RepSpecificSlot = 6   // DMG??
     case EntitlementDERSlot = 7
     case LaunchConstraintSelf = 8
     case LaunchConstraintParent = 9

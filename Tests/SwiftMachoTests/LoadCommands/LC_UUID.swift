@@ -1,11 +1,9 @@
 //
-//  LC_UUID_TESTS.swift
+//  LC_UUID.swift
 //  swift-macho
 //
 //  Created by jon on 10/28/25.
 //
-
-
 
 import Foundation
 import Testing

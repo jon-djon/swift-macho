@@ -51,7 +51,7 @@ extension MachO: ExpressibleByParsing {
     public init(parsing input: inout ParserSpan) throws {
         // The passed in input should already be set to the given macho range
         let machORange = input.parserRange
-        self.range = input.parserRange.lowerBound..<input.parserRange.upperBound
+        self.range = input.parserRange.range
         
         // try #magicNumber("FE", parsing: &input)
         self.magic = try Magic(parsingBigEndian: &input)
@@ -135,6 +135,7 @@ extension MachO: ExpressibleByParsing {
         // Second pass to fill in deferred parsing items
         var loadCommands: [LoadCommandValue] = []
         for loadCommand in cmds {
+            // print(loadCommand.header.id.description)
             switch loadCommand.header.id {
             case .LC_CODE_SIGNATURE:
                 guard var cmd = loadCommand as? LC_CODE_SIGNATURE else { throw MachOError.unknownError }
@@ -311,7 +312,12 @@ extension MachO: ExpressibleByParsing {
                 loadCommands.append(LoadCommandValue.LC_LINKER_OPTION(cmd))
             case .LC_LINKER_OPTIMIZATION_HINT:
                 guard let cmd = loadCommand as? LC_LINKER_OPTIMIZATION_HINT else { throw MachOError.unknownError }
-                loadCommands.append(LoadCommandValue.LC_LINKER_OPTIMIZATION_HINT(cmd))
+                
+                try input.seek(toRange: machORange)
+                try input.seek(toRelativeOffset: cmd.offset)
+                var span = try input.sliceSpan(byteCount: Int(cmd.size))
+                
+                loadCommands.append(LoadCommandValue.LC_LINKER_OPTIMIZATION_HINT(cmd, try LinkEditRaw(parsing: &span, endianness: endianness)))
             case .LC_VERSION_MIN_TVOS:
                 guard let cmd = loadCommand as? LC_VERSION_MIN_TVOS else { throw MachOError.unknownError }
                 loadCommands.append(LoadCommandValue.LC_VERSION_MIN_TVOS(cmd))

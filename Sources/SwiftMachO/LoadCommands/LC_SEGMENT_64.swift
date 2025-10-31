@@ -67,6 +67,7 @@ public struct Section64: Parseable {
             "TBD"
         }
         
+        // https://llvm.org/doxygen/namespacellvm_1_1MachO.html#a48b52b2439385a6f96a6e50defb27409aef454b668afac80edb50282845c9fcc9
         @AutoOptionSet
         public struct SectionType: OptionSet, Sendable {
             public static let REGULAR: SectionType = SectionType(rawValue: 0x00000000)

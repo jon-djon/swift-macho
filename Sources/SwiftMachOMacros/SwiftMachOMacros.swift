@@ -28,6 +28,7 @@ public struct CaseNameDescriptionMacro: MemberMacro {
     public static func expansion(
         of node: AttributeSyntax,
         providingMembersOf declaration: some DeclGroupSyntax,
+        conformingTo protocols: [TypeSyntax],
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
         // Ensure we're attached to an enum
@@ -98,11 +99,13 @@ public struct CaseNameMacro: MemberMacro, ExtensionMacro {
     public static func expansion(
         of node: AttributeSyntax,
         providingMembersOf declaration: some DeclGroupSyntax,
+        conformingTo protocols: [TypeSyntax],
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
         try CaseNameDescriptionMacro.expansion(
             of: node,
             providingMembersOf: declaration,
+            conformingTo: protocols,
             in: context
         )
     }
@@ -145,6 +148,7 @@ public struct AutoOptionSetMacro: MemberMacro, ExtensionMacro {
     public static func expansion(
         of node: AttributeSyntax,
         providingMembersOf declaration: some DeclGroupSyntax,
+        conformingTo protocols: [TypeSyntax],
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
         // Get the raw value type from the macro argument

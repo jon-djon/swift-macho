@@ -14,6 +14,7 @@ public struct CodeSignatureBlobWrapper: Parseable {
     public let magic: CodeSignatureBlobMagic
     public let length: UInt32
     // public let pkcs7: PKCS7 // TODO: Need to extract CMS code from the swift-certificates lib
+    public let cmsData: Data
     
     public let range: Range<Int>
     
@@ -30,6 +31,7 @@ extension CodeSignatureBlobWrapper {
             throw MachOError.badMagicValue("CodeSignatureBlobWrapper unexpected magic value \(self.magic)")
         }
         self.length = try UInt32(parsing: &input, endianness: .big)
+        self.cmsData = try Data(parsing: &input, byteCount: Int(self.length))
     }
 }
 

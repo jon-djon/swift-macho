@@ -83,6 +83,7 @@ public struct CodeSignatureCodeDirectory: Parseable {
         
         @CaseName
         public enum Flags: UInt64 {
+            case NONE = 0x0
             case EXECSEG_MAIN_BINARY = 0x1
             case EXECSEG_ALLOW_UNSIGNED = 0x10
             case EXECSEG_DEBUGGER = 0x20
@@ -127,7 +128,7 @@ public struct CodeSignatureCodeDirectory: Parseable {
     }
     
     public struct SpecialHash: Parseable {
-        public let index: CodeSignatureCodeDirectoryType
+        public let index: CodeSignatureCodeDirectorySlotType
         public let data: Data
         public let range: Range<Int>
         
@@ -218,7 +219,7 @@ extension CodeSignatureCodeDirectory.Scatter {
 
 extension CodeSignatureCodeDirectory.SpecialHash {
     public init(parsing input: inout ParserSpan, index: UInt32) throws {
-        guard let index = CodeSignatureCodeDirectoryType(rawValue: index) else {
+        guard let index = CodeSignatureCodeDirectorySlotType(rawValue: index) else {
             throw MachOError.parsingError("Bad Special Hash index")
         }
         

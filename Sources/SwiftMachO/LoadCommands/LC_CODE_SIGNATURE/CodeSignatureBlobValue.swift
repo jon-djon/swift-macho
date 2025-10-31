@@ -8,6 +8,7 @@
 import Foundation
 import BinaryParsing
 
+
 public enum CodeSignatureBlobValue {
     case CodeDirectory(CodeSignatureSuperBlob.Blob, CodeSignatureCodeDirectory)
     case CodeRequirement(CodeSignatureSuperBlob.Blob, CodeSignatureCodeRequirement)
@@ -16,6 +17,7 @@ public enum CodeSignatureBlobValue {
     case CodeEntitlementsDER(CodeSignatureSuperBlob.Blob, CodeSignatureCodeEntitlementsDER)
     case SuperBlob(CodeSignatureSuperBlob.Blob, CodeSignatureSuperBlob)
     case BlobWrapper(CodeSignatureSuperBlob.Blob, CodeSignatureBlobWrapper)
+    case LaunchConstraint(CodeSignatureSuperBlob.Blob, CodeSignatureLaunchConstraint)
     
     public var description: String {
         switch self {
@@ -26,6 +28,7 @@ public enum CodeSignatureBlobValue {
         case .CodeEntitlementsDER(let blob, let magic): "\(blob.description) - (\(magic.description))"
         case .SuperBlob(let blob, let magic): "\(blob.description) - (\(magic.description))"
         case .BlobWrapper(let blob, let magic): "\(blob.description) - (\(magic.description))"
+        case .LaunchConstraint(let blob, let magic): "\(blob.description) - (\(magic.description))"
         }
     }
 }
@@ -53,6 +56,8 @@ extension CodeSignatureBlobValue {
             self = .SuperBlob(blob, try CodeSignatureSuperBlob(parsing: &input))
         case .BlobWrapper:
             self = .BlobWrapper(blob, try CodeSignatureBlobWrapper(parsing: &input))
+        case .LaunchConstraint:
+            self = .LaunchConstraint(blob, try CodeSignatureLaunchConstraint(parsing: &input))
         }
     }
 }
