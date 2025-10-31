@@ -65,8 +65,14 @@ struct ParseMachO: ParsableCommand {
     
     // The main logic is now in the `run()` method.
     func run() throws {
-        // let path = "/usr/bin/modelmanagerdump"
-        let path = "/Library/Apple/System/Library/PrivateFrameworks/DeviceLink.framework/DeviceLink"
+        let path = "/Applications/Bear.app/Contents/MacOS/Bear"
+        // let path = "/Users/jon/Library/Passes/Cards/CwsFzwMBX53fCw2CKOH3rsSL9Qk=.pkpass/com/chargepoint/account/den/push/ExternalLocationDeletePush.class"
+        
+        guard MachOFile.isMachoFile(URL(fileURLWithPath: path)) else {
+            print("Could not parse Mach-O at \(filePath)")
+            return
+        }
+        
         guard let file = try? MachOFile(URL(fileURLWithPath: path)) else {
             print("Could not parse Mach-O at \(filePath)")
             return

@@ -54,7 +54,10 @@ extension MachO: ExpressibleByParsing {
         self.range = input.parserRange.range
         
         // try #magicNumber("FE", parsing: &input)
-        self.magic = try Magic(parsingBigEndian: &input)
+        guard
+            let magic = try? Magic(parsing: &input, endianness: .big)
+        else { throw MachOError.unsupportedMachO("MachO") }
+        self.magic = magic
         var span = try input.sliceSpan(byteCount: self.magic.headerSize)
         self.header = try MachOHeader(parsing: &span, magic: self.magic)
         
@@ -135,7 +138,7 @@ extension MachO: ExpressibleByParsing {
         // Second pass to fill in deferred parsing items
         var loadCommands: [LoadCommandValue] = []
         for loadCommand in cmds {
-            // print(loadCommand.header.id.description)
+//            print(loadCommand.header.id.description)
             switch loadCommand.header.id {
             case .LC_CODE_SIGNATURE:
                 guard var cmd = loadCommand as? LC_CODE_SIGNATURE else { throw MachOError.unknownError }

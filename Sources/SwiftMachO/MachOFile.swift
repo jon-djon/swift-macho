@@ -31,14 +31,14 @@ public class MachOFile {
     
     @CaseName
     public enum Magic: UInt32 {
-        case fat = 0xcafebabe
-        case fat64 = 0xcafebabf
-        case fatSwapped = 0xbebafeca
-        case fat64Swapped = 0xbfbafeca
-        case macho32 = 0xfeedface
-        case macho64 = 0xfeedfacf
-        case macho32Swapped = 0xcefaedfe
-        case macho64Swapped = 0xcffaedfe
+        case fat = 0xCAFEBABE
+        case fat64 = 0xCAFEBABF
+        case fatSwapped = 0xBEBAFECA
+        case fat64Swapped = 0xBFBAFECA
+        case macho32 = 0xFEEDFACE
+        case macho64 = 0xFEEDFACF
+        case macho32Swapped = 0xCEFAEDFE
+        case macho64Swapped = 0xCFFAEDFE
 
         public var isFat: Bool {
             switch self {
@@ -100,15 +100,32 @@ extension MachOFile {
             try? fileHandle.close()
         }
         
-        let data = fileHandle.readData(ofLength: 4)
+        let data = fileHandle.readData(ofLength: 8)
         
-        guard data.count == 4 else { return false }
+        guard data.count == 8 else { return false }
         
-        let magic = try? data.withParserSpan { input in
-            try Magic(parsing: &input, endianness: .little)
+        let magic = data.withParserSpan { input in
+            try? Magic(parsing: &input, endianness: .big)
         }
         
-        guard magic != nil else { return false }
+        guard
+            magic != nil
+        else { return false }
+        
+        // Java class files also have a magic of 0xBFBAFECA
+        // In a class file 4-6 is the minor version & 6-8 is the major version
+        // A check below to make sure count is below 0x20 is to make sure it is actually a Macho or Fat Binary
+        if magic == .fat {
+            let count = try? data.withParserSpan { input in
+                try input.seek(toRelativeOffset: 4)
+                return try UInt32(parsing: &input, endianness: .big)
+            }
+            
+            guard
+                let count = count,
+                count < 0x20
+            else { return false }
+        }
         
         return true
     }

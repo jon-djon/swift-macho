@@ -35,23 +35,40 @@ public struct FatBinary: Parseable {
 
 extension FatBinary: ExpressibleByParsing {
     public init(parsing input: inout ParserSpan) throws {
-        let start = input.parserRange.lowerBound
+        let start = input.startPosition
         
-        self.magic = try FatBinary.Magic(parsingBigEndian: &input)
+        self.magic = try FatBinary.Magic(parsing: &input, endianness: .big)
         self.nfatArch = try UInt32(parsingBigEndian: &input)
         self.architectures = try Array(parsing: &input, count: Int(self.nfatArch)) { input in
             try FatArchive(parsing: &input)
         }
         
-        self.range = start..<input.parserRange.lowerBound
+        self.range = start..<input.startPosition
         
-        self.machos = try self.architectures.map { arch in
+        self.machos = try self.architectures.compactMap { arch in
+            // Fat Archives can contain files other than macho (e.g. "!<arch>" files)
+            guard FatBinary.archiveIsMachO(arch, using: &input) else { return nil }
+            
             try input.seek(toAbsoluteOffset: arch.offset)
             var machoSlice = try input.sliceSpan(byteCount: Int(arch.size))
             return try MachO(parsing: &machoSlice)
         }
+        
+        // TODO: Look into parsing additional types foud in the binary (e.g. "!<arch>" files)
     }
-}   
+}
+
+extension FatBinary {
+    private static func archiveIsMachO(_ archive: FatArchive, using input: inout ParserSpan) -> Bool {
+        do {
+            try input.seek(toAbsoluteOffset: archive.offset)
+            _ = try MachO.Magic(parsing: &input, endianness: .big)
+            return true
+        } catch {
+            return false
+        }
+    }
+}
 
 extension FatBinary: Displayable {
     public var title: String { "Fat Binary" }

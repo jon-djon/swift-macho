@@ -81,16 +81,23 @@ public struct CodeSignatureCodeDirectory: Parseable {
         
         public let range: Range<Int>
         
-        @CaseName
-        public enum Flags: UInt64 {
-            case NONE = 0x0
-            case EXECSEG_MAIN_BINARY = 0x1
-            case EXECSEG_ALLOW_UNSIGNED = 0x10
-            case EXECSEG_DEBUGGER = 0x20
-            case EXECSEG_JIT = 0x40
-            case EXECSEG_SKIP_LV = 0x80
-            case EXECSEG_CAN_LOAD_CDHASH = 0x100
-            case EXECSEG_CAN_EXEC_CDHASH = 0x200
+        @AutoOptionSet(.UInt64)
+        public struct Flags: OptionSet, Sendable {
+            public static let EXECSEG_MAIN_BINARY = Flags(rawValue: 0x1)
+            public static let EXECSEG_ALLOW_UNSIGNED = Flags(rawValue: 0x10)
+            public static let EXECSEG_DEBUGGER = Flags(rawValue: 0x20)
+            public static let EXECSEG_JIT = Flags(rawValue: 0x40)
+            public static let EXECSEG_SKIP_LV = Flags(rawValue: 0x80)
+            public static let EXECSEG_CAN_LOAD_CDHASH = Flags(rawValue: 0x100)
+            public static let EXECSEG_CAN_EXEC_CDHASH = Flags(rawValue: 0x200)
+//            // case NONE = 0x0
+//            case EXECSEG_MAIN_BINARY = 0x1
+//            case EXECSEG_ALLOW_UNSIGNED = 0x10
+//            case EXECSEG_DEBUGGER = 0x20
+//            case EXECSEG_JIT = 0x40
+//            case EXECSEG_SKIP_LV = 0x80
+//            case EXECSEG_CAN_LOAD_CDHASH = 0x100
+//            case EXECSEG_CAN_EXEC_CDHASH = 0x200
         }
     }
     
@@ -196,11 +203,14 @@ extension CodeSignatureCodeDirectory.LinkageHeader {
 
 extension CodeSignatureCodeDirectory.ExecutableSegmentHeader {
     public init(parsing input: inout ParserSpan) throws {
-        self.range = input.parserRange.range
+        let start = input.startPosition
         
         self.base = try UInt64(parsing: &input, endianness: .big)
         self.limit = try UInt64(parsing: &input, endianness: .big)
+        // self.flags = try UInt64(parsing: &input, endianness: .big)
         self.flags = try CodeSignatureCodeDirectory.ExecutableSegmentHeader.Flags(parsing: &input, endianness: .big)
+        
+        self.range = start..<start+24
     }
 }
 
