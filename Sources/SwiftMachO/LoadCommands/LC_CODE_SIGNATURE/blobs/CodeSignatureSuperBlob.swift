@@ -85,6 +85,31 @@ extension CodeSignatureSuperBlob {
     }
 }
 
+extension CodeSignatureSuperBlob {
+    public var entitlements: [String]? {
+        if let entitlementsDER = blobs.first(where: {
+            switch $0 {
+            case .CodeEntitlementsDER: true
+            default: false
+            }
+        }) {
+            if case .CodeEntitlementsDER(_, let der) = entitlementsDER {
+                return der.keys
+            }
+        } else if let entitlements = blobs.first(where: {
+            switch $0 {
+            case .CodeEntitlements: true
+            default: false
+            }
+        }) {
+            if case .CodeEntitlements(_, let ent) = entitlements {
+                return ent.keys
+            }
+        }
+        return nil
+    }
+}
+
 
 extension CodeSignatureSuperBlob.Blob {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {

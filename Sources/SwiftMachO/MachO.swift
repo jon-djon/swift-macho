@@ -9,8 +9,6 @@ public struct MachO: Parseable {
     
     public let range: Range<Int>
     
-    public var signature: CodeSignatureSuperBlob? = nil
-    
     public var rawCommands: [LoadCommand] {
         loadCommands.map { $0.command }
     }
@@ -40,12 +38,20 @@ public struct MachO: Parseable {
             is64Bit ? 28 : 24
         }
     }
+}
+
+extension MachO {
+    public var entitlements: [String]? {
+        guard let (_,signature) = getSignature() else { return nil }
+        return signature.entitlements
+    }
     
     // TODO: Update this to throw if out of bounds
     public func getAbsoluteOffset(_ offset: Int) -> Int {
         return range.lowerBound + offset
     }
 }
+
 
 extension MachO: ExpressibleByParsing {
     public init(parsing input: inout ParserSpan) throws {
@@ -141,7 +147,7 @@ extension MachO: ExpressibleByParsing {
 //            print(loadCommand.header.id.description)
             switch loadCommand.header.id {
             case .LC_CODE_SIGNATURE:
-                guard var cmd = loadCommand as? LC_CODE_SIGNATURE else { throw MachOError.unknownError }
+                guard let cmd = loadCommand as? LC_CODE_SIGNATURE else { throw MachOError.unknownError }
                     
                 try input.seek(toRange: machORange)
                 try input.seek(toRelativeOffset: cmd.offset)
@@ -418,23 +424,6 @@ extension MachO {
         
         return cmd
     }
-    
-//    public func getHash(_ range: Range<Data.Index>, type: CodeSignatureHashType) -> String {
-//        switch type {
-//        case .NO_HASH:
-//            return ""
-//        case .SHA1:
-//            return data[range].sha1
-//        case .SHA256:
-//            return data[range].sha256
-//        case .SHA256_TRUNCATED:
-//            return String(data[range].sha256.prefix(32))
-//        case .SHA384:
-//            return data[range].sha384
-//        case .SHA512:
-//            return data[range].sha512
-//        }
-//    }
 }
 
 

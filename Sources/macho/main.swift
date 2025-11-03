@@ -65,8 +65,8 @@ struct ParseMachO: ParsableCommand {
     
     // The main logic is now in the `run()` method.
     func run() throws {
-        let path = "/Applications/Bear.app/Contents/MacOS/Bear"
-        // let path = "/Users/jon/Library/Passes/Cards/CwsFzwMBX53fCw2CKOH3rsSL9Qk=.pkpass/com/chargepoint/account/den/push/ExternalLocationDeletePush.class"
+        // let path = "/Applications/Bear.app/Contents/MacOS/Bear"
+        let path = "/Users/jon/Library/Application Support/discord/WidevineCdm/4.10.2891.0/_platform_specific/mac_arm64/libwidevinecdm.dylib"
         
         guard MachOFile.isMachoFile(URL(fileURLWithPath: path)) else {
             print("Could not parse Mach-O at \(filePath)")
@@ -88,7 +88,6 @@ struct ParseMachO: ParsableCommand {
                     for blob in signature.blobs {
                         print(blob.description)
                         if case .BlobWrapper(let blob, let wrapper) = blob {
-                            print(wrapper)
                             try wrapper.cmsData.write(to: URL(fileURLWithPath: "/Users/jon/code/swift-macho/tmp/signeddata.bin"), options: [.atomic])
                         }
                         

@@ -10,11 +10,11 @@ import BinaryParsing
 
 @CaseName
 public enum MachOCodeSignatureRequirementType: UInt32 {
-    case HostRequirementType = 1
-    case GuestRequirementType = 2
-    case DesignatedRequirementType = 3
-    case LibraryRequirementType = 4
-    case PluginRequirementType = 5
+    case host = 1
+    case guest = 2
+    case designated = 3
+    case library = 4
+    case plugin = 5
 }
 
 public struct CodeRequirementHeader: Parseable {
@@ -81,12 +81,32 @@ extension CodeSignatureCodeRequirements {
     }
 }
 
+extension CodeSignatureCodeRequirements {
+    public var requirementStrings: [String] {
+        requirements.compactMap {
+            try? $0.1.buildExpressionString()
+        }
+    }
+}
+
 extension CodeSignatureCodeRequirements: Displayable {
     public var title: String {
         "CodeSignatureCodeRequirements"
     }
     
-    public var children: [any Displayable]? {
-        []
+    public var fields: [DisplayableField] {
+        [
+            .init(label: "Magic", stringValue: magic.description, offset: 0, size: 4, children: nil, obj: self),
+            .init(label: "Length", stringValue: length.description, offset: 4, size: 4, children: nil, obj: self),
+            .init(label: "Requirements", stringValue: "\(requirements.count.description) Requirements", offset: 8, size: Int(self.length)-8, children: requirements.enumerated().map { index,req in
+                .init(label: "Requirement \(index)", stringValue: "", offset: 0, size: 4, children: [
+                    .init(label: "Type", stringValue: req.0.type.description, offset: 0, size: 4, children: nil, obj: req.0),
+                    .init(label: "Offset", stringValue: req.0.offset.description, offset: 4, size: 4, children: nil, obj: req.0),
+                    .init(label: "Requirement", stringValue: req.1.description, offset: 0, size: req.1.range.count, children: req.1.fields, obj: req.1),
+                ], obj: self)
+            }, obj: self),
+        ]
     }
+    
+    public var children: [any Displayable]? { nil }
 }

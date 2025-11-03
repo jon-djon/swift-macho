@@ -76,3 +76,16 @@ extension MatchExprSingle {
         }
     }
 }
+
+extension MatchExprSingle: CustomStringConvertible {
+    public var description: String {
+        var desc = "\(self.op)"
+        if let arg = self.arg {
+            desc += " \(arg)"
+        }
+        if let timestamp = self.timestamp {
+            desc += " \(timestamp)"
+        }
+        return desc
+    }
+}

@@ -38,7 +38,7 @@ extension FatBinary: ExpressibleByParsing {
         let start = input.startPosition
         
         self.magic = try FatBinary.Magic(parsing: &input, endianness: .big)
-        self.nfatArch = try UInt32(parsingBigEndian: &input)
+        self.nfatArch = try UInt32(parsing: &input, endianness: .big)
         self.architectures = try Array(parsing: &input, count: Int(self.nfatArch)) { input in
             try FatArchive(parsing: &input)
         }

@@ -68,3 +68,9 @@ extension CertificateMatch {
         
     }
 }
+
+extension CertificateMatch: CustomStringConvertible {
+    public var description: String {
+        "CertificateMatch(\(slotString) \(fieldString), \(match))"
+    }
+}

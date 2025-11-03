@@ -45,7 +45,7 @@ extension CodeSignatureBlobValue {
         case .CodeDirectory:
             self = .CodeDirectory(blob, try CodeSignatureCodeDirectory(parsing: &input))
         case .CodeRequirement:
-            self = .CodeRequirement(blob, try CodeSignatureCodeRequirement(parsing: &input, type: .DesignatedRequirementType))
+            self = .CodeRequirement(blob, try CodeSignatureCodeRequirement(parsing: &input, type: .designated))
         case .CodeRequirements:
             self = .CodeRequirements(blob, try CodeSignatureCodeRequirements(parsing: &input))
         case .CodeEntitlements:

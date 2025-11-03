@@ -13,7 +13,7 @@ public struct LoadCommandHeader {
     public let cmdSize: UInt32    
 
     @CaseName
-    public enum ID: UInt32 {
+    public enum ID: UInt32, CaseIterable {
         case LC_SEGMENT = 0x01
         case LC_SYMTAB
         case LC_SYMSEG

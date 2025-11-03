@@ -47,10 +47,37 @@ public enum CodeSignatureRequirementExprOp: UInt32 {
 public enum CodeSignatureRequirementExprOpValue {
     case Single(CodeSignatureRequirementExprOp)
     case SingleArg(CodeSignatureRequirementExprOp, String)
+    case IntArg(CodeSignatureRequirementExprOp, Int32, String)
     case KeyValue(CodeSignatureRequirementExprOp, String, String)
-    case SingleInt(CodeSignatureRequirementExprOp, UInt32)
+    case SingleInt(CodeSignatureRequirementExprOp, Int32)
     case CertMatch(CodeSignatureRequirementExprOp, CertificateMatch)
     case KeyMatch(CodeSignatureRequirementExprOp, String, MatchExprSingle)
+}
+
+extension CodeSignatureRequirementExprOpValue {
+    public var stringValue: String {
+        switch self {
+        case .Single(_): "-"
+        case .SingleArg(_, let arg): arg
+        case .IntArg(_, let idx, let arg): "\(idx.description) \(arg)"
+        case .KeyValue(_, let key, let value): "\(key):\(value)"
+        case .SingleInt(_, let idx): "\(idx.description)"
+        case .CertMatch(_, let match): "\(match.description)"
+        case .KeyMatch(_, let key, let match): "\(key):\(match.description)"
+        }
+    }
+    
+    public var op: CodeSignatureRequirementExprOp {
+        switch self {
+        case .Single(let op): op
+        case .SingleArg(let op, _): op
+        case .IntArg(let op, _, _): op
+        case .KeyValue(let op, _, _): op
+        case .SingleInt(let op, _): op
+        case .CertMatch(let op, _): op
+        case .KeyMatch(let op, _, _): op
+        }
+    }
 }
 
 public struct CodeSignatureCodeRequirement: Parseable {
@@ -67,6 +94,11 @@ public struct CodeSignatureCodeRequirement: Parseable {
 //        requirements.map {
 //            $0.description
 //        }.joined(separator: "\n")
+    }
+    
+    public var expressionString: String {
+        guard let str = try? buildExpressionString() else { return "Error" }
+        return str
     }
 }
 
@@ -89,13 +121,19 @@ extension CodeSignatureCodeRequirement {
         
         var expressions:[CodeSignatureRequirementExprOpValue] = []
         switch type {
-        case .DesignatedRequirementType:
+        case .designated:
             while !span.parserRange.isEmpty {
                 let op = try CodeSignatureRequirementExprOp(parsing: &span, endianness: .big)
                 switch op {
                 case .opFalse, .opTrue, .opAppleAnchor, .opAppleGenericAnchor, .opTrustedCerts, .opNotarized, .opLegacyDevID, .opOr, .opAnd:
                     expressions.append(CodeSignatureRequirementExprOpValue.Single(op))
-                case .opIdent, .opAnchorHash, .opCDHash, .opNot, .opNamedCode, .opNamedAnchor:
+                case .opAnchorHash:
+                    // Appears that opAnchorHash has a 4 byte value before the length of the hash, not sure what it is?
+                    let idx = try Int32(parsing: &span, endianness: .big)
+                    let size = try UInt32(parsing: &span, endianness: .big)
+                    let data = try Data(parsing: &span, byteCount: Int(size).align(4))
+                    expressions.append(CodeSignatureRequirementExprOpValue.IntArg(op, idx, data.hexDescription))
+                case .opIdent, .opCDHash, .opNot, .opNamedCode, .opNamedAnchor:
                     let size = try UInt32(parsing: &span, endianness: .big)
                     let arg = try String(parsingUTF8: &span, count: Int(size).align(4))
                     expressions.append(CodeSignatureRequirementExprOpValue.SingleArg(op, arg))
@@ -106,7 +144,7 @@ extension CodeSignatureCodeRequirement {
                     let value = try String(parsingUTF8: &span, count: Int(valueSize).align(4))
                     expressions.append(CodeSignatureRequirementExprOpValue.KeyValue(op, key, value))
                 case .opTrustedCert, .opPlatform:
-                    let idx = try UInt32(parsing: &span, endianness: .big)
+                    let idx = try Int32(parsing: &span, endianness: .big)
                     expressions.append(CodeSignatureRequirementExprOpValue.SingleInt(op, idx))
                 case .opCertGeneric, .opCertField, .opCertPolicy, .opCertDate:
                     let match = try CertificateMatch(parsing: &span)
@@ -129,6 +167,16 @@ extension CodeSignatureCodeRequirement {
     public func buildExpressionString() throws -> String {
         var index = 0
         return try buildExpressionString(&index, level: .top)
+    }
+    
+    private func idxString(_ idx: Int32) -> String {
+        if idx == 0 {
+            "leaf"
+        } else if idx == -1 {
+            "anchor"
+        } else {
+            idx.description
+        }
     }
      
     // https://github.com/apple-oss-distributions/Security/blob/3dab46a11f45f2ffdbd70e2127cc5a8ce4a1f222/OSX/libsecurity_codesigning/lib/reqdumper.cpp
@@ -175,10 +223,14 @@ extension CodeSignatureCodeRequirement {
                 }
             default: break
             }
+        case .IntArg(let op, let idx, let arg):
+            switch op {
+            case .opAnchorHash: expressionString += "certificate \(idxString(idx)) = H\"\(arg)\"" // ?? TODO
+            default: break
+            }
         case .SingleArg(let op, let arg):
             switch op {
             case .opIdent: expressionString += "identifier \"\(arg)\""
-            case .opAnchorHash: expressionString += "certificate \("certSlot") = \("hashData")" // ?? TODO
             case .opCDHash: expressionString += "cdhash \(arg)"
             case .opNot: expressionString += "! \(try buildExpressionString(&index, level: .primary))"
             case .opNamedCode: expressionString += "(\(arg))"
@@ -192,7 +244,7 @@ extension CodeSignatureCodeRequirement {
             }
         case .SingleInt(let op, let idx):
             switch op {
-            case .opTrustedCert: expressionString += "certificate \(idx) trusted"
+            case .opTrustedCert: expressionString += "certificate \(idxString(idx)) trusted"
             case .opPlatform: expressionString += "platform = \(idx)"
             default: break
             }
@@ -219,6 +271,17 @@ extension CodeSignatureCodeRequirement {
 extension CodeSignatureCodeRequirement: Displayable {
     public var title: String {
         "CodeSignatureCodeRequirements"
+    }
+    
+    public var fields: [DisplayableField] {
+        [
+            .init(label: "Magic", stringValue: magic.description, offset: 0, size: 4, children: nil, obj: self),
+            .init(label: "Length", stringValue: length.description, offset: 4, size: 4, children: nil, obj: self),
+            .init(label: "Kind", stringValue: kind.description, offset: 8, size: 4, children: nil, obj: self),
+            .init(label: "Expressions", stringValue: "\(expressions.count.description) Expressions" , offset: 12, size: 4, children: expressions.enumerated().map { index,exp in
+                    .init(label: "Expression \(index) (\(exp.op.description))", stringValue: exp.stringValue, offset: 0, size: 4, children: nil, obj: self)
+            }, obj: self),
+        ]
     }
     
     public var children: [any Displayable]? {

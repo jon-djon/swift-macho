@@ -101,7 +101,7 @@ public enum LoadCommandValue {
 extension LoadCommandValue {
     public var command: LoadCommand {
         switch self {
-        case .LC_CODE_SIGNATURE(let cmd, let signature): cmd
+        case .LC_CODE_SIGNATURE(let cmd, _): cmd
         case .LC_UUID(let cmd): cmd
         case .LC_FUNCTION_STARTS(let cmd, _): cmd
         case .LC_LOAD_DYLIB(let cmd): cmd
@@ -191,7 +191,7 @@ extension LoadCommandValue: Displayable {
     public var children: [Displayable]? {
         switch self {
         case .LC_CODE_SIGNATURE(_, let signature): [signature]
-        case .LC_FUNCTION_STARTS(_, let starts): []
+        case .LC_FUNCTION_STARTS(_, _): []
         case .LC_LINKER_OPTIMIZATION_HINT(_, let le): [le]
         // case .LC_SEGMENT_SPLIT_INFO(_, let le): [le]
         // case .LC_DATA_IN_CODE(_, let codes): []

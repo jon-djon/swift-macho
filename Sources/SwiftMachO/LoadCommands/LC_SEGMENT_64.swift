@@ -157,7 +157,7 @@ extension LC_SEGMENT_64 {
 }
 
 extension LC_SEGMENT_64: Displayable {
-    public var title: String { "\(Self.self) TODO" }
+    public var title: String { "\(Self.self)" }
     public var description: String { "" }
     public var fields: [DisplayableField] {
         [

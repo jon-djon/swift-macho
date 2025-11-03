@@ -16,13 +16,15 @@ public struct DisplayableField: Identifiable {
     public let isAbsoluteOffset: Bool = false
     public let children: [DisplayableField]?
     
-    public let obj: Parseable
+    public let obj: Parseable?
     
     public var absoluteOffset: Int {
+        guard let obj = self.obj else { return 0 }
+        
         if isAbsoluteOffset {
-            offset
+            return offset
         } else {
-            obj.range.lowerBound + offset
+            return obj.range.lowerBound + offset
         }
     }
 }
