@@ -6,28 +6,17 @@
 
 ```mermaid
 ---
-config:
-  gantt:
-    displayMode: compact
-    numberSectionStyles: 2
+title: LC_LOAD_DYLIB Structure
 ---
-gantt
-    title LC_LOAD_DYLIB Structure (bytes)
-    dateFormat X
-    axisFormat %s
-
-    section Header
-    Command ID (0x0C)           :0, 4
-    Command Size                :4, 8
-
-    section Dylib Info
-    Name Offset                 :8, 12
-    Timestamp                   :12, 16
-    Current Version             :16, 20
-    Compatibility Version       :20, 24
-
-    section Name String
-    Library Name (null-term)    :24, 64
+packet-beta
+0-31: "Command ID (0x0C)"
+32-63: "Command Size"
+64-95: "Name Offset"
+96-127: "Timestamp"
+128-159: "Current Version"
+160-191: "Compatibility Version"
+192-223: "Library Name String"
+224-255: "(null-terminated, variable length)"
 ```
 
 Tells the dynamic linker (`dyld`) that a dynamic library must be loaded before the executable can run. Each `LC_LOAD_DYLIB` command identifies one required dylib dependency by its install name path, along with version information used for compatibility checking.
