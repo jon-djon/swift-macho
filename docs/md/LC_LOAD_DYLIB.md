@@ -2,6 +2,34 @@
 
 **Command ID:** `0x0C`
 
+## Binary Format
+
+```mermaid
+---
+config:
+  gantt:
+    displayMode: compact
+    numberSectionStyles: 2
+---
+gantt
+    title LC_LOAD_DYLIB Structure (bytes)
+    dateFormat X
+    axisFormat %s
+
+    section Header
+    Command ID (0x0C)           :0, 4
+    Command Size                :4, 8
+
+    section Dylib Info
+    Name Offset                 :8, 12
+    Timestamp                   :12, 16
+    Current Version             :16, 20
+    Compatibility Version       :20, 24
+
+    section Name String
+    Library Name (null-term)    :24, 64
+```
+
 Tells the dynamic linker (`dyld`) that a dynamic library must be loaded before the executable can run. Each `LC_LOAD_DYLIB` command identifies one required dylib dependency by its install name path, along with version information used for compatibility checking.
 
 At load time, `dyld` resolves the library by its name, verifies that its current version is at least as high as the recorded compatibility version, and binds the executable's undefined symbols against the library's exports. If the library cannot be found or the version check fails, the process aborts before `main` is called.
