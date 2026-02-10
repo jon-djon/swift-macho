@@ -27,6 +27,10 @@ public struct DisplayableField: Identifiable {
             return obj.range.lowerBound + offset
         }
     }
+    
+    public var range: Range<Int> {
+        absoluteOffset..<absoluteOffset + size
+    }
 }
 
 

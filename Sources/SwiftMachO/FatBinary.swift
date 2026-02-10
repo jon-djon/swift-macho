@@ -34,6 +34,7 @@ public struct FatBinary: Parseable {
 }
 
 extension FatBinary: ExpressibleByParsing {
+    
     public init(parsing input: inout ParserSpan) throws {
         let start = input.startPosition
         

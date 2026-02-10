@@ -23,7 +23,7 @@ struct LC_CODE_SIGNATURE_Tests {
         }
         
         _ = bad.withParserSpan { span in
-            #expect(throws: SwiftMachO.MachOError.self) {
+            #expect(throws: MachOError.self) {
                 _ = try SwiftMachO.LC_LINKER_OPTION(parsing: &span, endianness: .little)
             }
         }

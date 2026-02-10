@@ -105,7 +105,7 @@ extension MachOHeader: Displayable {
             .init(label: "Size of Commands", stringValue: sizeOfCmds.description, offset: 16, size: 4, children: nil, obj: self),
             .init(label: "Flags", stringValue: "0x\(flags.rawValue.hexDescription)", offset: 20, size: 4,
                   children: flags.activeFlags.enumerated().map { (index: Int, flag: (Flags, String))  in
-                        .init(label: flag.1, stringValue: "0x\(flag.0.rawValue.hexDescription)", offset: 24, size: 4, children: nil, obj: self)
+                        .init(label: flag.1, stringValue: "0x\(flag.0.rawValue.hexDescription)", offset: 20, size: 4, children: nil, obj: self)
                   },
                   obj: self
             ),

@@ -98,7 +98,7 @@ extension LC_BUILD_VERSION {
 
 extension LC_BUILD_VERSION: Displayable {
     public var title: String { "\(Self.self)" }
-    public var description: String { "" }
+    public var description: String { "Specifies the target platform, minimum OS version, SDK version, and build tools used to create the binary." }
     public var fields: [DisplayableField] {
         [
             .init(label: "Command ID", stringValue: header.id.description, offset: 0, size: 4, children: nil, obj: self),

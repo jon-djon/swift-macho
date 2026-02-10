@@ -47,7 +47,7 @@ extension DataInCode: Parseable {
 
 extension DataInCode: Displayable {
     public var title: String { "\(Self.self)" }
-    public var description: String { "" }
+    public var description: String { "The **LC_DATA_IN_CODE** command is a MachO load command that specifies the location and size of the Data-in-Code Table within the binary. The primary purpose of the LC_DATA_IN_CODE command is to identify specific sequences of bytes within the executable's code sections that are not intended to be executed as machine instructions but are instead treated as data." }
     public var fields: [DisplayableField] {
         [
             .init(label: "Offset", stringValue: offset.description, offset: 0, size: 4, children: nil, obj: self),

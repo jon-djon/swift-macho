@@ -28,22 +28,19 @@ final class EnumDescriptionTests: XCTestCase {
                 case macho64 = 0xfeedfacf
                 case macho32Swapped = 0xcefaedfe
                 case macho64Swapped = 0xcffaedfe
-            
+
                 public var description: String {
                     switch self {
-                    case .macho32:
+                        case .macho32:
                         return "macho32"
-                    case .macho64:
+                            case .macho64:
                         return "macho64"
-                    case .macho32Swapped:
+                            case .macho32Swapped:
                         return "macho32Swapped"
-                    case .macho64Swapped:
+                            case .macho64Swapped:
                         return "macho64Swapped"
                     }
                 }
-            }
-            
-            extension Magic: CustomStringConvertible {
             }
             """,
             macros: ["CaseName": CaseNameMacro.self]

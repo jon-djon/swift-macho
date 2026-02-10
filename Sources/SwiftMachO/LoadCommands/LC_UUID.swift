@@ -37,7 +37,7 @@ extension LC_UUID {
 
 extension LC_UUID: Displayable {
     public var title: String { "\(Self.self)" }
-    public var description: String { "" }
+    public var description: String { "The primary purpose of the LC_UUID command is to provide a unique, immutable identifier for the MachO binary." }
     public var fields: [DisplayableField] {
         [
             .init(label: "ID", stringValue: header.id.description, offset: 0, size: 4, children: nil, obj: self),

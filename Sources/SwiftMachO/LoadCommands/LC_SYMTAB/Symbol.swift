@@ -8,13 +8,15 @@
 import Foundation
 import BinaryParsing
 
-
+// https://alexdremov.me/mystery-of-mach-o-object-file-builders/
+// https://www.newosxbook.com/src.php?tree=xnu&file=/EXTERNAL_HEADERS/mach-o/nlist.h
+// https://github.com/kudinovdenis/binary-loader/blob/c6bf87691b0ec4c7e46dfb54d002ba8bb1b7ec88/BinaryAnalyzer/MachO/Commands/LC_SYMTAB/SymTabEntry.swift#L48
 public struct Symbol: Parseable {
     public let n_strx: UInt32 // index into the string table
-    public let n_type: UInt8
-    public let n_sect: UInt8
-    // public let n_desc: DEBUGGER_SYMBOL
-    public let n_desc: UInt16
+    public let n_type: SymbolType
+    public let n_sect: UInt8  // If type does not have N_SECT, then this defines the section number
+    public let n_desc: DEBUGGER_SYMBOL
+    // public let n_desc: UInt16
     public let n_val: NVAL  // This is UInt32 for 32 bit binaries
     
     public let range: Range<Int>
@@ -37,9 +39,22 @@ public struct Symbol: Parseable {
             }
         }
     }
+    
+    @AutoOptionSet(.UInt8)
+    public struct SymbolType: OptionSet, Sendable {
+        //  public static let N_UNDF = MachOCodeSignatureCodeDirectoryFlags(rawValue: 0x00)
+        public static let N_TYPE = SymbolType(rawValue: 0x0e)
+        public static let N_ABS = SymbolType(rawValue: 0x02)
+        public static let N_SECT = SymbolType(rawValue: 0xe)
+        public static let N_PBUD = SymbolType(rawValue: 0xc)
+        public static let N_INDR = SymbolType(rawValue: 0xa)
+        public static let N_EXT = SymbolType(rawValue: 0x01)
+        public static let N_STAB = SymbolType(rawValue: 0xe0)
+    }
 
     @CaseName
     public enum DEBUGGER_SYMBOL: UInt16 {
+        case N_NONE = 0x00
         case N_GSYM  =  0x20    /* global symbol: name,,NO_SECT,type,0 */
         case N_FNAME =   0x22    /* procedure name (f77 kludge): name,,NO_SECT,0,0 */
         case N_FUN  =  0x24    /* procedure: name,,n_sect,linenumber,address */
@@ -94,10 +109,17 @@ extension Symbol {
         self.range = input.parserRange.range
         
         self.n_strx = try UInt32(parsing: &input, endianness: endianness)
-        self.n_type = try UInt8(parsing: &input)
+        self.n_type = try SymbolType(parsing: &input)
         self.n_sect = try UInt8(parsing: &input)
-        self.n_desc = try UInt16(parsing: &input, endianness: endianness)
-        // self.n_desc = DEBUGGER_SYMBOL(parsing: &input, endianness: endianness)
+        
+//        self.n_desc = try UInt16(parsing: &input, endianness: endianness)
+//        if let sym = try DEBUGGER_SYMBOL(rawValue: self.n_desc) {
+//            print(sym.description)
+//        } else {
+//            print("Unknown value: \(self.n_desc.description)")
+//        }
+        
+        self.n_desc = try DEBUGGER_SYMBOL(parsing: &input, endianness: endianness)
         if is64it {
             self.n_val = NVAL.bit64(try UInt64(parsing: &input, endianness: endianness))
         } else {
@@ -111,11 +133,13 @@ extension Symbol: Displayable {
     public var description: String { "" }
     public var fields: [DisplayableField] {
         [
-            .init(label: "n_strx", stringValue: n_strx.description, offset: 0, size: 4, children: nil, obj: self),
-            .init(label: "n_type", stringValue: n_type.description, offset: 4, size: 1, children: nil, obj: self),
-            .init(label: "n_sect", stringValue: n_sect.description, offset: 5, size: 1, children: nil, obj: self),
+            .init(label: "String Table Index", stringValue: n_strx.description, offset: 0, size: 4, children: nil, obj: self),
+            .init(label: "n_type", stringValue: n_type.description, offset: 4, size: 1, children: n_type.activeFlags.enumerated().map { index,flag in
+                    .init(label: "0x\(flag.0.rawValue.description)", stringValue: flag.1, offset: 4, size: 1, children: nil, obj: self)
+            }, obj: self),
+            .init(label: "Section Number", stringValue: n_sect.description, offset: 5, size: 1, children: nil, obj: self),
             .init(label: "n_desc", stringValue: n_desc.description, offset: 6, size: 2, children: nil, obj: self),
-            .init(label: "n_val", stringValue: n_val.description, offset: 8, size: n_val.size, children: nil, obj: self),
+            .init(label: "n_val", stringValue: n_val.size.hexDescription, offset: 8, size: n_val.size, children: nil, obj: self),
         ]
     }
     public var children: [Displayable]? { nil }

@@ -7,6 +7,6 @@
 
 extension UInt64 {
     public var hexDescription: String {
-        String(format: "%016x", self)
+        String(format: "%016X", self)
     }
 }

@@ -46,7 +46,7 @@ extension LC_LOAD_WEAK_DYLIB {
 
 extension LC_LOAD_WEAK_DYLIB: Displayable {
     public var title: String { "\(Self.self)" }
-    public var description: String { "" }
+    public var description: String { "The LC_LOAD_WEAK_DYLIB command is to tell the dynamic linker (dyld) which dynamic libraries (dylibs) or frameworks should be attempted to be loaded at the program's startup. If the dylib is not found then the executable will still launch and run." }
     public var fields: [DisplayableField] {
         [
             .init(label: "Command ID", stringValue: header.id.description, offset: 0, size: 4, children: nil, obj: self),

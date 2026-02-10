@@ -11,20 +11,36 @@ import BinaryParsing
 @testable import SwiftMachO
 
 struct LC_LINKER_OPTION_Tests {
-    let data = Data([45,0,0,0,24,0,0,0,1,0,0,0,45,108,115,119,105,102,116,67,111,114,101,0,])
+    // LC_LINKER_OPTION with single option "-lswiftCore"
+    // Header: cmd=0x2D (45), cmdsize=0x18 (24)
+    // count=1, option="-lswiftCore"
+    let data = Data([
+        0x2D, 0x00, 0x00, 0x00,  // cmd = LC_LINKER_OPTION (0x2D)
+        0x18, 0x00, 0x00, 0x00,  // cmdsize = 24
+        0x01, 0x00, 0x00, 0x00,  // count = 1
+        0x2D, 0x6C, 0x73, 0x77,  // "-lsw"
+        0x69, 0x66, 0x74, 0x43,  // "iftC"
+        0x6F, 0x72, 0x65, 0x00,  // "ore\0"
+    ])
     
-    let bad = Data([50,0,0,0,40,0,0,0,])
+    // Wrong command ID
+    let bad = Data([0x32, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00])
     
     @Test
-    func LC_LINKER_OPTION() throws {
+    func LC_LINKER_OPTION_Valid() throws {
         try data.withParserSpan { span in
             let f = try SwiftMachO.LC_LINKER_OPTION(parsing: &span, endianness: .little)
             #expect(f.header.id == .LC_LINKER_OPTION)
             #expect(f.header.cmdSize == 24)
+            #expect(f.range == 0..<Int(f.header.cmdSize))
             #expect(f.count == 1)
-            #expect(f.options[0] == (12,"-lswiftCore"))
+            #expect(f.options[0] == (12, "-lswiftCore"))
+            #expect(span.count == 0)
         }
-        
+    }
+    
+    @Test
+    func LC_LINKER_OPTION_InvalidCommand() throws {
         _ = bad.withParserSpan { span in
             #expect(throws: SwiftMachO.MachOError.self) {
                 _ = try SwiftMachO.LC_LINKER_OPTION(parsing: &span, endianness: .little)

@@ -92,7 +92,16 @@ extension LC_SEGMENT {
 
 extension LC_SEGMENT: Displayable {
     public var title: String { "\(Self.self) TODO" }
-    public var description: String { "" }
+    public var description: String { """
+        Defines a 32-bit segment of the binary that is mapped into memory at runtime.
+
+        Common segments include:
+        `__PAGEZERO`: Guard page at address 0 to catch NULL pointer dereferences
+        `__TEXT`: Executable code and read-only data
+        `__DATA`: Writable initialized data
+        `__DATA_CONST`: Read-only after initialization (e.g., Objective-C metadata)
+        `__LINKEDIT`: Metadata used by the dynamic linker (symbols, signatures, etc.)
+        """ }
     public var fields: [DisplayableField] {
         [
             .init(label: "Command ID", stringValue: header.id.description, offset: 0, size: 4, children: nil, obj: self),

@@ -29,9 +29,12 @@ extension LC_SUB_CLIENT {
         
         self.strOffset = try UInt32(parsing: &input, endianness: endianness)
         
-        try input.seek(toAbsoluteOffset: self.range.lowerBound+Int(self.strOffset))
-        var span = input.extractRemaining()
-        self.name = String(parsingUTF8: &span)
+        // May need to advance further if offset is past 12
+        if self.strOffset > 12 {
+            try input.seek(toRelativeOffset: Int(self.strOffset)-12)
+        }
+        
+        self.name = String(parsingUTF8: &input)
     }
 }
 

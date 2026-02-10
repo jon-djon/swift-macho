@@ -67,6 +67,7 @@ public enum LoadCommandValue {
     case LC_UUID(LC_UUID)
     case LC_RPATH(LC_RPATH)
     case LC_CODE_SIGNATURE(LC_CODE_SIGNATURE, CodeSignatureSuperBlob)
+    // case LC_SEGMENT_SPLIT_INFO(LC_SEGMENT_SPLIT_INFO, SplitSegInfo)
     case LC_SEGMENT_SPLIT_INFO(LC_SEGMENT_SPLIT_INFO)
     case LC_REEXPORT_DYLIB(LC_REEXPORT_DYLIB)
     case LC_LAZY_LOAD_DYLIB(LC_LAZY_LOAD_DYLIB)
@@ -90,7 +91,7 @@ public enum LoadCommandValue {
     case LC_NOTE(LC_NOTE)
     case LC_BUILD_VERSION(LC_BUILD_VERSION)
     case LC_DYLD_EXPORTS_TRIE(LC_DYLD_EXPORTS_TRIE)
-    case LC_DYLD_CHAINED_FIXUPS(LC_DYLD_CHAINED_FIXUPS)
+    case LC_DYLD_CHAINED_FIXUPS(LC_DYLD_CHAINED_FIXUPS, ChainedFixupsData)
     case LC_FILESET_ENTRY(LC_FILESET_ENTRY)
     case LC_ATOM_INFO(LC_ATOM_INFO)
     case LC_FUNCTION_VARIANTS(LC_FUNCTION_VARIANTS)
@@ -134,13 +135,14 @@ extension LoadCommandValue {
         case .LC_SEGMENT_64(let cmd): cmd
         case .LC_ROUTINES_64(let cmd): cmd
         case .LC_RPATH(let cmd): cmd
+        // case .LC_SEGMENT_SPLIT_INFO(let cmd, _): cmd
         case .LC_SEGMENT_SPLIT_INFO(let cmd): cmd
         case .LC_REEXPORT_DYLIB(let cmd): cmd
         case .LC_LAZY_LOAD_DYLIB(let cmd): cmd
         case .LC_DYLD_INFO(let cmd): cmd
         case .LC_LOAD_UPWARD_DYLIB(let cmd): cmd
         case .LC_VERSION_MIN_MACOSX(let cmd): cmd
-        case .LC_DYLD_CHAINED_FIXUPS(let cmd): cmd
+        case .LC_DYLD_CHAINED_FIXUPS(let cmd, _): cmd
         case .LC_VERSION_MIN_IPHONEOS(let cmd): cmd
         case .LC_MAIN(let cmd): cmd
         case .LC_DATA_IN_CODE(let cmd, _): cmd
@@ -193,11 +195,11 @@ extension LoadCommandValue: Displayable {
         case .LC_CODE_SIGNATURE(_, let signature): [signature]
         case .LC_FUNCTION_STARTS(_, _): []
         case .LC_LINKER_OPTIMIZATION_HINT(_, let le): [le]
-        // case .LC_SEGMENT_SPLIT_INFO(_, let le): [le]
+        case .LC_DYLD_CHAINED_FIXUPS(_, let data): [data]
+//        case .LC_SEGMENT_SPLIT_INFO(_, let info): [info]
         // case .LC_DATA_IN_CODE(_, let codes): []
 //        case .LC_DYLIB_CODE_SIGN_DRS(_, let le): [le]
 //        case .LC_DYLD_EXPORTS_TRIE(_, let le): [le]
-//        case .LC_DYLD_CHAINED_FIXUPS(_, let le): [le]
         default: command.children
         }
     }

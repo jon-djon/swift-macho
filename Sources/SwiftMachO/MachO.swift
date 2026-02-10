@@ -8,6 +8,7 @@ public struct MachO: Parseable {
     public let loadCommands: [LoadCommandValue]
     
     public let range: Range<Int>
+    // public var file: MachOFile?  // TODO: need to decide if the MachO should maintain a reference to the file
     
     public var rawCommands: [LoadCommand] {
         loadCommands.map { $0.command }
@@ -54,7 +55,9 @@ extension MachO {
 
 
 extension MachO: ExpressibleByParsing {
+    
     public init(parsing input: inout ParserSpan) throws {
+        
         // The passed in input should already be set to the given macho range
         let machORange = input.parserRange
         self.range = input.parserRange.range
@@ -272,6 +275,10 @@ extension MachO: ExpressibleByParsing {
                 loadCommands.append(LoadCommandValue.LC_RPATH(cmd))
             case .LC_SEGMENT_SPLIT_INFO:
                 guard let cmd = loadCommand as? LC_SEGMENT_SPLIT_INFO else { throw MachOError.unknownError }
+//                try input.seek(toRange: machORange)
+//                try input.seek(toRelativeOffset: cmd.offset)
+//                var span = try input.sliceSpan(byteCount: Int(cmd.size))
+//                loadCommands.append(LoadCommandValue.LC_SEGMENT_SPLIT_INFO(cmd, try SplitSegInfo(parsing: &span)))
                 loadCommands.append(LoadCommandValue.LC_SEGMENT_SPLIT_INFO(cmd))
             case .LC_REEXPORT_DYLIB:
                 guard let cmd = loadCommand as? LC_REEXPORT_DYLIB else { throw MachOError.unknownError }
@@ -290,7 +297,12 @@ extension MachO: ExpressibleByParsing {
                 loadCommands.append(LoadCommandValue.LC_VERSION_MIN_MACOSX(cmd))
             case .LC_DYLD_CHAINED_FIXUPS:
                 guard let cmd = loadCommand as? LC_DYLD_CHAINED_FIXUPS else { throw MachOError.unknownError }
-                loadCommands.append(LoadCommandValue.LC_DYLD_CHAINED_FIXUPS(cmd))
+                
+                try input.seek(toRange: machORange)
+                try input.seek(toRelativeOffset: cmd.offset)
+                var span = try input.sliceSpan(byteCount: Int(cmd.size))
+                
+                loadCommands.append(LoadCommandValue.LC_DYLD_CHAINED_FIXUPS(cmd, try ChainedFixupsData(parsing: &span, endianness: endianness)))
             case .LC_VERSION_MIN_IPHONEOS:
                 guard let cmd = loadCommand as? LC_VERSION_MIN_IPHONEOS else { throw MachOError.unknownError }
                 loadCommands.append(LoadCommandValue.LC_VERSION_MIN_IPHONEOS(cmd))
@@ -381,6 +393,10 @@ extension MachO {
         return self.rawCommands.first(where: { $0.header.id == type })
     }
     
+    public func getLoadCommandsByType(_ type: LoadCommandHeader.ID) -> [LoadCommand] {
+        return self.rawCommands.filter { $0.header.id == type }
+    }
+    
     public func getSignature() -> (LC_CODE_SIGNATURE, CodeSignatureSuperBlob)? {
         guard
             let lc = loadCommands.first(where: {
@@ -410,6 +426,66 @@ extension MachO {
         return _cd
     }
     
+    public func getRequirements() -> CodeSignatureCodeRequirements? {
+        guard
+            let (_,signature) = getSignature(),
+            let cr = signature.blobs.first(where: {
+                switch $0 {
+                case .CodeRequirements(_,_): true
+                default: false
+                }
+            }),
+            case let .CodeRequirements(_, _cr) = cr
+        else { return nil }
+        
+        return _cr
+    }
+    
+    public func getEntitlementsDER() -> CodeSignatureCodeEntitlementsDER? {
+        guard
+            let (_,signature) = getSignature(),
+            let ce = signature.blobs.first(where: {
+                switch $0 {
+                case .CodeEntitlementsDER(_,_): true
+                default: false
+                }
+            }),
+            case let .CodeEntitlementsDER(_, _ce) = ce
+        else { return nil }
+        
+        return _ce
+    }
+    
+    public func getEntitlements() -> CodeSignatureCodeEntitlements? {
+        guard
+            let (_,signature) = getSignature(),
+            let ce = signature.blobs.first(where: {
+                switch $0 {
+                case .CodeEntitlements(_,_): true
+                default: false
+                }
+            }),
+            case let .CodeEntitlements(_, _ce) = ce
+        else { return nil }
+        
+        return _ce
+    }
+    
+    public func getRawSignature() -> CodeSignatureBlobWrapper? {
+        guard
+            let (_,signature) = getSignature(),
+            let bw = signature.blobs.first(where: {
+                switch $0 {
+                case .BlobWrapper(_,_): true
+                default: false
+                }
+            }),
+            case let .BlobWrapper(_, _bw) = bw
+        else { return nil }
+        
+        return _bw
+    }
+    
     public func getSegmentByName(_ name: String) -> LC_SEGMENT_64? {
         guard
             let lc = loadCommands.first(where: {
@@ -428,7 +504,7 @@ extension MachO {
 
 
 extension MachO: Displayable {
-    public var title: String { "MachO" }
+    public var title: String { "MachO \(header.cpu.type.description)" }
     public var description: String { "" }
     public var fields: [DisplayableField] {
         [

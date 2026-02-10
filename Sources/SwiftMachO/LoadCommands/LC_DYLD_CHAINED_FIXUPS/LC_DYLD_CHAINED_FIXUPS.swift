@@ -1,0 +1,45 @@
+//
+//  LC_DYLD_CHAINED_FIXUPS.swift
+//  swift-macho
+//
+//  Created by jon on 10/16/25.
+//
+
+import Foundation
+import BinaryParsing
+
+public struct LC_DYLD_CHAINED_FIXUPS: LoadCommand, LoadCommandLinkEdit {
+    public let header: LoadCommandHeader
+    public let offset: UInt32
+    public let size: UInt32
+    
+    public let range: Range<Int>
+}
+
+extension LC_DYLD_CHAINED_FIXUPS {
+    public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
+        self.range = input.parserRange.range
+        
+        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
+        guard header.id == .LC_DYLD_CHAINED_FIXUPS else {
+            throw MachOError.LoadCommandError("Invalid LC_DYLD_CHAINED_FIXUPS")
+        }
+        
+        self.offset = try UInt32(parsing: &input, endianness: endianness)
+        self.size = try UInt32(parsing: &input, endianness: endianness)
+    }
+}
+
+extension LC_DYLD_CHAINED_FIXUPS: Displayable {
+    public var title: String { "\(Self.self)" }
+    public var description: String { "The **LC_DYLD_CHAINED_FIXUPS** command is a Mach-O load command that specifies the location and size of the chained fixups data used by the dynamic linker (dyld) to apply rebasing and binding operations at runtime. Chained fixups are a modern, highly optimized data format that significantly reduces the size of dynamic linker information and accelerates application launch times by allowing dyld to process fixups more efficiently." }
+    public var fields: [DisplayableField] {
+        [
+            .init(label: "Command ID", stringValue: header.id.description, offset: 0, size: 4, children: nil, obj: self),
+            .init(label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4, children: nil, obj: self),
+            .init(label: "Data Offset", stringValue: offset.hexDescription, offset: 8, size: 4, children: nil, obj: self),
+            .init(label: "Data Size", stringValue: size.description, offset: 12, size: 4, children: nil, obj: self),
+        ]
+    }
+    public var children: [Displayable]? { nil }
+}

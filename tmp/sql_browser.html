@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue.js SQLite Browser</title>
+    <!-- 1. Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 2. Vue.js 3 (Composition API) -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- 3. SQL.js (SQLite for WebAssembly) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+    <style>
+        /* Basic app styling */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Simple table styling */
+        table th, table td {
+            @apply px-4 py-2 border border-gray-300 dark:border-gray-700 text-left;
+        }
+        table th {
+            @apply bg-gray-100 dark:bg-gray-800 font-semibold;
+        }
+        /* Hide un-compiled Vue content */
+        [v-cloak] {
+            display: none;
+        }
+    </style>
+    <script>
+      // Configure Tailwind for dark mode
+      tailwind.config = {
+        darkMode: 'media', // or 'class'
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
+          },
+        },
+      }
+    </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 h-full flex flex-col" v-cloak>
+    
+    <div id="app" class="flex flex-col h-full max-w-7xl mx-auto w-full p-4 md:p-8">
+        <!-- Header -->
+        <header class="mb-6">
+            <h1 class="text-3xl font-bold text-blue-600 dark:text-blue-400">Vue.js SQLite Browser</h1>
+            <p class="text-gray-600 dark:text-gray-400">Upload and browse any SQLite database file entirely in your browser.</p>
+        </header>
+
+        <!-- Main Content: Conditional rendering based on DB state -->
+        <main class="flex-1 flex flex-col min-h-0">
+
+            <!-- 1. File Upload Screen (if no DB is loaded) -->
+            <div v-if="!db" class="flex-1 flex items-center justify-center">
+                <div class="w-full max-w-lg p-8 bg-white dark:bg-gray-800 rounded-lg shadow-xl text-center">
+                    <h2 class="text-xl font-semibold mb-4">Load your Database</h2>
+                    <p class="text-gray-600 dark:text-gray-400 mb-6">
+                        Your file will be processed locally in your browser. No data is uploaded to any server.
+                    </p>
+                    
+                    <!-- File Input -->
+                    <input type="file" @change="loadDatabase" ref="dbUpload" accept=".sqlite,.db,.sqlite3"
+                           class="block w-full text-sm text-gray-500 rounded-lg border border-gray-300 dark:border-gray-600
+                                  file:mr-4 file:py-2 file:px-4
+                                  file:rounded-l-lg file:border-0
+                                  file:text-sm file:font-semibold
+                                  file:bg-blue-50 dark:file:bg-blue-900
+                                  file:text-blue-700 dark:file:text-blue-300
+                                  hover:file:bg-blue-100 dark:hover:file:bg-blue-800
+                                  dark:bg-gray-700 dark:placeholder-gray-400">
+
+                    <!-- Loading/Error State -->
+                    <div v-if="appState.loading" class="mt-4 text-blue-600 dark:text-blue-400">
+                        <svg class="animate-spin h-5 w-5 inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Loading database...
+                    </div>
+                    <div v-if="appState.error" class="mt-4 p-3 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-200 rounded-lg">
+                        <strong>Error:</strong> {{ appState.error }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Database Browser Screen (if DB is loaded) -->
+            <div v-if="db" class="flex-1 flex flex-col md:flex-row min-h-0 space-y-4 md:space-y-0 md:space-x-6">
+                
+                <!-- Left Panel: Tables List -->
+                <aside class="w-full md:w-1/4 lg:w-1/5 flex-shrink-0">
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md h-full flex flex-col">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-lg font-semibold">Tables</h3>
+                            <button @click="closeDatabase" title="Close Database" class="text-gray-400 hover:text-red-500 dark:hover:text-red-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        <ul class="flex-1 overflow-y-auto space-y-1">
+                            <li v-for="table in tables" :key="table">
+                                <a href="#" @click.prevent="selectTable(table)"
+                                   class="block px-3 py-2 rounded-md font-medium text-sm"
+                                   :class="table === selectedTable ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'">
+                                   {{ table }}
+                                </a>
+                            </li>
+                            <li v-if="!tables.length" class="px-3 py-2 text-sm text-gray-500">
+                                No tables found.
+                            </li>
+                        </ul>
+                    </div>
+                </aside>
+
+                <!-- Right Panel: Data Viewer & Query Editor -->
+                <section class="flex-1 flex flex-col min-h-0 space-y-6">
+                    
+                    <!-- Custom Query Editor -->
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
+                        <h3 class="text-lg font-semibold mb-3">Custom Query</h3>
+                        <textarea v-model="sqlQuery" rows="4"
+                                  class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 font-mono text-sm"
+                                  placeholder="SELECT * FROM your_table LIMIT 10;"></textarea>
+                        <div class="flex items-center justify-between mt-3">
+                            <button @click="runCustomQuery"
+                                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition duration-200">
+                                Run Query
+                            </button>
+                            <span v-if="queryState.time" class="text-sm text-gray-500">
+                                Query took {{ queryState.time.toFixed(2) }} ms
+                            </span>
+                        </div>
+                        <div v-if="queryState.error" class="mt-4 p-3 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-200 rounded-lg">
+                            <strong>SQL Error:</strong> {{ queryState.error }}
+                        </div>
+                    </div>
+
+                    <!-- Data/Results Viewer -->
+                    <div class="flex-1 bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex flex-col min-h-0">
+                        <h3 class="text-lg font-semibold mb-3">
+                            Results
+                            <span v-if="selectedTable && !queryState.custom" class="text-gray-500 font-normal">
+                                (Showing first 100 rows from '{{ selectedTable }}')
+                            </span>
+                            <span v-if="queryState.custom" class="text-gray-500 font-normal">
+                                (Custom Query Results)
+                            </span>
+                        </h3>
+
+                        <!-- Results Table -->
+                        <div class="flex-1 overflow-auto">
+                            <table v-if="results.columns.length" class="w-full min-w-max">
+                                <thead>
+                                    <tr>
+                                        <th v-for="col in results.columns" :key="col">{{ col }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="(row, index) in results.rows" :key="index" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                        <td v-for="col in results.columns" :key="col" class="whitespace-nowrap">
+                                            {{ row[col] }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <!-- Empty State -->
+                            <div v-if="!results.columns.length && !queryState.loading && !queryState.error" class="text-center text-gray-500 pt-10">
+                                <span v-if="!selectedTable && !queryState.custom">Select a table or run a custom query to see results.</span>
+                                <span v-if="(selectedTable || queryState.custom) && !queryState.error">Query returned 0 rows.</span>
+                            </div>
+
+                            <!-- Loading State -->
+                            <div v-if="queryState.loading" class="text-center text-blue-600 dark:text-blue-400 pt-10">
+                                <svg class="animate-spin h-6 w-6 inline-block mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Running query...
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        // Use Vue 3 Composition API
+        const { createApp, ref, reactive, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                // --- Reactive State ---
+                
+                // The sql.js instance
+                const SQL = ref(null); 
+                // The database instance
+                const db = ref(null); 
+                // List of table names
+                const tables = ref([]); 
+                // Currently selected table name
+                const selectedTable = ref(null); 
+                // User-typed SQL query
+                const sqlQuery = ref(''); 
+                
+                // General app loading/error state
+                const appState = reactive({
+                    loading: true,
+                    error: null,
+                });
+
+                // State for query execution
+                const queryState = reactive({
+                    loading: false,
+                    error: null,
+                    time: 0,
+                    custom: false, // Was this a custom query?
+                });
+
+                // Results to display in the table
+                const results = reactive({
+                    columns: [],
+                    rows: [],
+                });
+
+                // --- Methods ---
+
+                /**
+                 * Initializes the sql.js library by loading the WASM file.
+                 * This runs once when the app mounts.
+                 */
+                onMounted(async () => {
+                    try {
+                        // initSqlJs requires a config object to locate the .wasm file
+                        SQL.value = await initSqlJs({
+                            locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${file}`
+                        });
+                        appState.loading = false;
+                    } catch (err) {
+                        console.error(err);
+                        appState.error = "Failed to load SQL.js WebAssembly file. Check console or try refreshing.";
+                    }
+                });
+
+                /**
+                 * Handles the file input change event.
+                 * Reads the file as an ArrayBuffer and loads it into sql.js.
+                 */
+                const loadDatabase = (event) => {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    appState.loading = true;
+                    appState.error = null;
+                    const reader = new FileReader();
+
+                    reader.onload = (e) => {
+                        try {
+                            const uInt8Array = new Uint8Array(e.target.result);
+                            // Load the database
+                            db.value = new SQL.value.Database(uInt8Array);
+                            // Fetch all table names
+                            fetchTables();
+                        } catch (err) {
+                            console.error(err);
+                            appState.error = `Failed to read database: ${err.message}. Is this a valid SQLite file?`;
+                            db.value = null;
+                        } finally {
+                            appState.loading = false;
+                        }
+                    };
+
+                    reader.onerror = (err) => {
+                        appState.loading = false;
+                        appState.error = "Failed to read file.";
+                        console.error(err);
+                    };
+
+                    reader.readAsArrayBuffer(file);
+                };
+
+                /**
+                 * Queries the sqlite_master table to get all user tables.
+                 */
+                const fetchTables = () => {
+                    if (!db.value) return;
+                    try {
+                        const res = db.value.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';");
+                        if (res.length > 0) {
+                            tables.value = res[0].values.flat().sort();
+                        } else {
+                            tables.value = [];
+                        }
+                        // Select the first table by default
+                        if (tables.value.length > 0) {
+                            selectTable(tables.value[0]);
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        appState.error = `Failed to fetch tables: ${err.message}`;
+                    }
+                };
+
+                /**
+                 * Clears all results and query states.
+                 */
+                const clearResults = () => {
+                    results.columns = [];
+                    results.rows = [];
+                    queryState.error = null;
+                    queryState.loading = false;
+                    queryState.time = 0;
+                };
+
+                /**
+                 * Processes the output of db.exec() into a format
+                 * friendly for Vue rendering.
+                 */
+                const processQueryResults = (res) => {
+                    if (!res || res.length === 0) {
+                        // No results (e.g., an INSERT or empty SELECT)
+                        results.columns = [];
+                        results.rows = [];
+                        return;
+                    }
+                    
+                    // `res` is an array of result objects. We only care about the first one.
+                    const { columns, values } = res[0];
+                    results.columns = columns;
+
+                    // Convert array of arrays into array of objects for easier rendering
+                    results.rows = values.map(rowArray => {
+                        const rowObject = {};
+                        columns.forEach((col, index) => {
+                            rowObject[col] = rowArray[index];
+                        });
+                        return rowObject;
+                    });
+                };
+                
+                /**
+                 * Executes a SQL query string against the loaded database.
+                 */
+                const executeQuery = (query) => {
+                    if (!db.value) return;
+                    
+                    clearResults();
+                    queryState.loading = true;
+                    
+                    // Use setTimeout to allow UI to update to "loading" state
+                    setTimeout(() => {
+                        try {
+                            const startTime = performance.now();
+                            const res = db.value.exec(query);
+                            const endTime = performance.now();
+                            
+                            queryState.time = endTime - startTime;
+                            processQueryResults(res);
+
+                        } catch (err) {
+                            console.error(err);
+                            queryState.error = err.message;
+                        } finally {
+                            queryState.loading = false;
+                        }
+                    }, 10); // 10ms delay
+                };
+
+                /**
+                 * Loads the first 100 rows from the selected table.
+                 */
+                const selectTable = (tableName) => {
+                    selectedTable.value = tableName;
+                    sqlQuery.value = `SELECT * FROM "${tableName}" LIMIT 100;`;
+                    queryState.custom = false;
+                    executeQuery(sqlQuery.value);
+                };
+
+                /**
+                 * Runs the query from the user-editable textarea.
+                 */
+                const runCustomQuery = () => {
+                    if (!sqlQuery.value) {
+                        queryState.error = "Query is empty.";
+                        return;
+                    }
+                    selectedTable.value = null; // Deselect table
+                    queryState.custom = true;
+                    executeQuery(sqlQuery.value);
+                };
+                
+                /**
+                 * Closes the database and resets the app to the upload screen.
+                 */
+                const closeDatabase = () => {
+                    if (db.value) {
+                        db.value.close();
+                        db.value = null;
+                    }
+                    tables.value = [];
+                    selectedTable.value = null;
+                    sqlQuery.value = '';
+                    clearResults();
+                    appState.error = null;
+                    queryState.custom = false;
+                };
+
+                // --- Return state and methods ---
+                return {
+                    db,
+                    tables,
+                    selectedTable,
+                    sqlQuery,
+                    appState,
+                    queryState,
+                    results,
+                    
+                    loadDatabase,
+                    selectTable,
+                    runCustomQuery,
+                    closeDatabase,
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

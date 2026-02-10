@@ -7,7 +7,7 @@
 
 extension Int {
     public var hexDescription: String {
-        String(format: "%08x", self)
+        String(format: "%08X", self)
     }
     
     public func align(_ align: Int) -> Int {

@@ -87,9 +87,9 @@ struct ParseMachO: ParsableCommand {
                     
                     for blob in signature.blobs {
                         print(blob.description)
-                        if case .BlobWrapper(let blob, let wrapper) = blob {
-                            try wrapper.cmsData.write(to: URL(fileURLWithPath: "/Users/jon/code/swift-macho/tmp/signeddata.bin"), options: [.atomic])
-                        }
+//                        if case .BlobWrapper(let blob, let wrapper) = blob {
+//                            try wrapper.cmsData.write(to: URL(fileURLWithPath: "/Users/jon/code/swift-macho/tmp/signeddata.bin"), options: [.atomic])
+//                        }
                         
 //                        if case .CodeRequirements(let blob, let codeSignatureCodeRequirements) = blob {
 //                            for (header, requirement) in codeSignatureCodeRequirements.requirements {

@@ -12,7 +12,7 @@ public struct CodeSignatureCodeDirectory: Parseable {
     public let magic: CodeSignatureBlobMagic
     public let length: UInt32
     public let version: UInt32
-    public let flags: UInt32 // TODO:
+    public let flags: CodeDirectoryFlags
     public let hashOffset: UInt32
     public let identOffset: UInt32
     public let numSpecialSlots: UInt32
@@ -53,6 +53,46 @@ public struct CodeSignatureCodeDirectory: Parseable {
     public let teamID: String?
     
     public let range: Range<Int>
+    
+    @AutoOptionSet(.UInt32)
+    public struct CodeDirectoryFlags: OptionSet, Sendable {
+        //  public static let NONE = CodeDirectoryFlags(rawValue: 0x00000000)
+        public static let CS_VALID = CodeDirectoryFlags(rawValue: 0x00000001)
+        public static let CS_ADHOC = CodeDirectoryFlags(rawValue: 0x00000002)
+        public static let CS_GET_TASK_ALLOW = CodeDirectoryFlags(rawValue: 0x00000004)
+        public static let CS_INSTALLER = CodeDirectoryFlags(rawValue: 0x00000008)
+        public static let CS_FORCED_LV = CodeDirectoryFlags(rawValue: 0x00000010)
+        public static let CS_INVALID_ALLOWED = CodeDirectoryFlags(rawValue: 0x00000020)
+        public static let CS_HARD = CodeDirectoryFlags(rawValue: 0x00000100)
+        public static let CS_KILL = CodeDirectoryFlags(rawValue: 0x00000200)
+        public static let CS_CHECK_EXPIRATION = CodeDirectoryFlags(rawValue: 0x00000400)
+        public static let CS_RESTRICT = CodeDirectoryFlags(rawValue: 0x00000800)
+        public static let CS_ENFORCEMENT = CodeDirectoryFlags(rawValue: 0x00001000)
+        public static let CS_REQUIRE_LV = CodeDirectoryFlags(rawValue: 0x00002000)
+        public static let CS_ENTITLEMENTS_VALIDATED = CodeDirectoryFlags(rawValue: 0x00004000)
+        public static let CS_NVRAM_UNRESTRICTED = CodeDirectoryFlags(rawValue: 0x00008000)
+        public static let CS_RUNTIME = CodeDirectoryFlags(rawValue: 0x00010000) // Hardened Runtime
+        public static let CS_LINKER_SIGNED = CodeDirectoryFlags(rawValue: 0x20000)
+        
+        // ADHOC | HARD | KILL | CHECK_EXPIRATION | RESTRICT | ENFORCEMENT | REQUIRE_LV | RUNTIME
+        public static let CS_ALLOWED_MACHO = CodeDirectoryFlags(rawValue: 0x00000002 | 0x00000100 | 0x00000200 | 0x00000400 | 0x00000800 | 0x00001000 | 0x00002000 | 0x00010000)
+
+        public static let CS_EXEC_SET_HARD = CodeDirectoryFlags(rawValue: 0x00100000)
+        public static let CS_EXEC_SET_KILL = CodeDirectoryFlags(rawValue: 0x00200000)
+        public static let CS_EXEC_SET_ENFORCEMENT = CodeDirectoryFlags(rawValue: 0x00400000)
+        public static let CS_EXEC_INHERIT_SIP = CodeDirectoryFlags(rawValue: 0x00800000)
+        public static let CS_KILLED = CodeDirectoryFlags(rawValue: 0x01000000)
+        public static let CS_DYLD_PLATFORM = CodeDirectoryFlags(rawValue: 0x02000000)
+        public static let CS_PLATFORM_BINARY = CodeDirectoryFlags(rawValue: 0x04000000)
+        public static let CS_PLATFORM_PATH = CodeDirectoryFlags(rawValue: 0x08000000)
+        public static let CS_DEBUGGED = CodeDirectoryFlags(rawValue: 0x10000000)
+        public static let CS_SIGNED = CodeDirectoryFlags(rawValue: 0x20000000)
+        public static let CS_DEV_CODE = CodeDirectoryFlags(rawValue: 0x40000000)
+        public static let CS_DATAVAULT_CONTROLLER = CodeDirectoryFlags(rawValue: 0x80000000)
+        
+        // GET_TASK_ALLOW | INSTALLER | DATAVAULT_CONTROLLER | NVRAM_UNRESTRICTED
+        public static let CS_ENTITLEMENT_FLAGS = CodeDirectoryFlags(rawValue: 0x00000004 | 0x00000008 | 0x80000000 | 0x00008000)
+    }
     
     public var fullPageSize: Int {
         Int(pow(2.0, Double(pageSize)))
@@ -257,7 +297,7 @@ extension CodeSignatureCodeDirectory {
         }
         self.length = try UInt32(parsing: &input, endianness: .big)
         self.version = try UInt32(parsing: &input, endianness: .big)
-        self.flags = try UInt32(parsing: &input, endianness: .big)
+        self.flags = try CodeDirectoryFlags(parsing: &input, endianness: .big)
         self.hashOffset = try UInt32(parsing: &input, endianness: .big)
         self.identOffset = try UInt32(parsing: &input, endianness: .big)
         self.numSpecialSlots = try UInt32(parsing: &input, endianness: .big)
@@ -375,14 +415,16 @@ extension CodeSignatureCodeDirectory {
 
 extension CodeSignatureCodeDirectory: Displayable {
     public var title: String { "\(Self.self)" }
-    public var description: String { "CodeSignatureCodeDirectory" }
+    public var description: String { "The **Code Directory** is the most crucial component of the LC_CODE_SIGNATURE load command's data blob. It serves as the primary manifest for the code signature, containing the cryptographic hashes that verify the integrity of the executable and other signed data." }
     public var fields: [DisplayableField] {
         var fields: [DisplayableField] =
         [
             .init(label: "Magic", stringValue: magic.description, offset: 0, size: 4, children: nil, obj: self),
             .init(label: "Length", stringValue: length.description, offset: 4, size: 4, children: nil, obj: self),
             .init(label: "Version", stringValue: version.description, offset: 8, size: 4, children: nil, obj: self),
-            .init(label: "Flags", stringValue: flags.description, offset: 12, size: 4, children: nil, obj: self),
+            .init(label: "Flags", stringValue: "0x\(flags.rawValue.hexDescription) (\(flags.description))", offset: 12, size: 4, children: flags.activeFlags.enumerated().map { index,flag in
+                    .init(label: "0x\(flag.0.rawValue.hexDescription)", stringValue: flag.1, offset: 12, size: 4, children: nil, obj: self)
+            }, obj: self),
             .init(label: "Hash Offset", stringValue: hashOffset.description, offset: 16, size: 4, children: nil, obj: self),
             .init(label: "Identifier Offset", stringValue: identOffset.description, offset: 20, size: 4, children: nil, obj: self),
             .init(label: "Number of Special Slots", stringValue: numSpecialSlots.description, offset: 24, size: 4, children: nil, obj: self),

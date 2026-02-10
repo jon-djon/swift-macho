@@ -29,9 +29,12 @@ extension LC_DYLD_ENVIRONMENT {
         
         self.nameOffset = try UInt32(parsing: &input, endianness: endianness)
         
-        try input.seek(toAbsoluteOffset: self.range.lowerBound+Int(self.nameOffset))
-        var span = input.extractRemaining()
-        self.name = String(parsingUTF8: &span)
+        // May need to advance further if offset is past 12
+        if self.nameOffset > 12 {
+            try input.seek(toRelativeOffset: Int(self.nameOffset)-12)
+        }
+        
+        self.name = String(parsingUTF8: &input)
     }
 }
 

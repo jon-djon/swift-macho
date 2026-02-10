@@ -29,15 +29,22 @@ extension LC_RPATH {
         
         self.strOffset = try UInt32(parsing: &input, endianness: endianness)
         
-        try input.seek(toAbsoluteOffset: self.range.lowerBound+Int(self.strOffset))
-        var span = input.extractRemaining()
-        self.name = String(parsingUTF8: &span)
+        // May need to advance further if offset is past 12
+        if self.strOffset > 12 {
+            try input.seek(toRelativeOffset: Int(self.strOffset)-12)
+        }
+        
+        
+//        try input.seek(toAbsoluteOffset: self.range.lowerBound+Int(self.strOffset))
+//        var span = input.extractRemaining()
+//        print(span.parserRange.range)
+        self.name = String(parsingUTF8: &input)
     }
 }
 
 extension LC_RPATH: Displayable {
     public var title: String { "\(Self.self)" }
-    public var description: String { "" }
+    public var description: String { "LC_RPATH instructs the dynamic linker (dyld) where to search for dynamically linked libraries (dylibs) or frameworks that are referenced using the @rpath subsitution string." }
     public var fields: [DisplayableField] {
         [
             .init(label: "Command ID", stringValue: header.id.description, offset: 0, size: 4, children: nil, obj: self),

@@ -46,7 +46,7 @@ extension LC_LOAD_DYLIB {
 
 extension LC_LOAD_DYLIB: Displayable {
     public var title: String { "\(Self.self)" }
-    public var description: String { "" }
+    public var description: String { "The LC_LOAD_DYLIB command is to tell the dynamic linker (dyld) which dynamic libraries (dylibs) or frameworks must be loaded at the program's startup." }
     public var fields: [DisplayableField] {
         [
             .init(label: "Command ID", stringValue: header.id.description, offset: 0, size: 4, children: nil, obj: self),

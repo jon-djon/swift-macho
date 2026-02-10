@@ -35,7 +35,7 @@ extension LC_DYSYMTAB {
 
 extension LC_DYSYMTAB: Displayable {
     public var title: String { "\(Self.self) TODO" }
-    public var description: String { "" }
+    public var description: String { "The **LC_DYSYMTAB** (Dynamic Symbol Table) command is a Mach-O load command that specifies the organization and location of the auxiliary symbol tables used exclusively by the dynamic linker (dyld) at runtime. It is used in conjunction with the main symbol table defined by LC_SYMTAB to facilitate efficient and correct dynamic linking." }
     public var fields: [DisplayableField] {
         [
             .init(label: "Command ID", stringValue: header.id.description, offset: 0, size: 4, children: nil, obj: self),
