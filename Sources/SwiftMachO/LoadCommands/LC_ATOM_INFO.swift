@@ -9,6 +9,7 @@ import BinaryParsing
 import Foundation
 
 public struct LC_ATOM_INFO: LoadCommand, LoadCommandLinkEdit {
+    public static let expectedID: LoadCommandHeader.ID = .LC_ATOM_INFO
     public let header: LoadCommandHeader
     public let offset: UInt32
     public let size: UInt32
@@ -20,10 +21,7 @@ extension LC_ATOM_INFO {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
 
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_ATOM_INFO else {
-            throw MachOError.LoadCommandError("Invalid LC_ATOM_INFO")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
 
         self.offset = try UInt32(parsing: &input, endianness: endianness)
         self.size = try UInt32(parsing: &input, endianness: endianness)

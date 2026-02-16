@@ -9,6 +9,7 @@ import Foundation
 import BinaryParsing
 
 public struct LC_TARGET_TRIPLE: LoadCommand {
+    public static let expectedID: LoadCommandHeader.ID = .LC_TARGET_TRIPLE
     public let header: LoadCommandHeader
     public let range: Range<Int>
 }
@@ -17,10 +18,7 @@ extension LC_TARGET_TRIPLE {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
         
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_TARGET_TRIPLE else {
-            throw MachOError.LoadCommandError("Invalid LC_TARGET_TRIPLE")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
     }
 }
 

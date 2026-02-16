@@ -47,6 +47,7 @@ public enum PlatformEnum: UInt32 {
 }
 
 public struct LC_BUILD_VERSION: LoadCommand {
+    public static let expectedID: LoadCommandHeader.ID = .LC_BUILD_VERSION
     public let header: LoadCommandHeader
     public let platform: PlatformEnum
     public let minOS: SemanticVersion
@@ -78,10 +79,7 @@ extension LC_BUILD_VERSION {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
 
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_BUILD_VERSION else {
-            throw MachOError.LoadCommandError("Invalid LC_BUILD_VERSION")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
 
         self.platform = try PlatformEnum(parsing: &input, endianness: endianness)
         self.minOS = try SemanticVersion(parsing: &input, endianness: endianness)

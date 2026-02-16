@@ -9,6 +9,7 @@ import BinaryParsing
 import Foundation
 
 public struct LC_VERSION_MIN_TVOS: LoadCommand {
+    public static let expectedID: LoadCommandHeader.ID = .LC_VERSION_MIN_TVOS
     public let header: LoadCommandHeader
     public let version: SemanticVersion
     public let sdk: SemanticVersion
@@ -19,10 +20,7 @@ extension LC_VERSION_MIN_TVOS {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
 
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_VERSION_MIN_TVOS else {
-            throw MachOError.LoadCommandError("Invalid LC_VERSION_MIN_TVOS")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
 
         self.version = try SemanticVersion(parsing: &input, endianness: endianness)
         self.sdk = try SemanticVersion(parsing: &input, endianness: endianness)

@@ -9,6 +9,7 @@ import BinaryParsing
 import Foundation
 
 public struct LC_REEXPORT_DYLIB: LoadCommand {
+    public static let expectedID: LoadCommandHeader.ID = .LC_REEXPORT_DYLIB
     public let header: LoadCommandHeader
     public let strOffset: UInt32
     public let timestamp: UInt32
@@ -24,10 +25,7 @@ extension LC_REEXPORT_DYLIB {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
 
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_REEXPORT_DYLIB else {
-            throw MachOError.LoadCommandError("Invalid LC_REEXPORT_DYLIB")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
 
         self.strOffset = try UInt32(parsing: &input, endianness: endianness)
         self.timestamp = try UInt32(parsing: &input, endianness: endianness)

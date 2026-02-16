@@ -9,6 +9,7 @@ import BinaryParsing
 import Foundation
 
 public struct LC_SOURCE_VERSION: LoadCommand {
+    public static let expectedID: LoadCommandHeader.ID = .LC_SOURCE_VERSION
     public let header: LoadCommandHeader
     public let version: UInt64
 
@@ -19,10 +20,7 @@ extension LC_SOURCE_VERSION {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
 
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_SOURCE_VERSION else {
-            throw MachOError.LoadCommandError("Invalid LC_SOURCE_VERSION")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
         self.version = try UInt64(parsing: &input, endianness: endianness)
     }
 }

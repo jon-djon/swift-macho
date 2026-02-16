@@ -9,6 +9,7 @@ import Foundation
 import BinaryParsing
 
 public struct LC_NOTE: LoadCommand {
+    public static let expectedID: LoadCommandHeader.ID = .LC_NOTE
     public let header: LoadCommandHeader
     public let range: Range<Int>
 }
@@ -17,10 +18,7 @@ extension LC_NOTE {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
         
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_NOTE else {
-            throw MachOError.LoadCommandError("Invalid LC_NOTE")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
     }
 }
 

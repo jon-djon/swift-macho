@@ -9,6 +9,7 @@ import BinaryParsing
 import Foundation
 
 public struct LC_CODE_SIGNATURE: LoadCommand, LoadCommandLinkEdit {
+    public static let expectedID: LoadCommandHeader.ID = .LC_CODE_SIGNATURE
     public let range: Range<Int>
     public let header: LoadCommandHeader
 
@@ -19,10 +20,7 @@ public struct LC_CODE_SIGNATURE: LoadCommand, LoadCommandLinkEdit {
 extension LC_CODE_SIGNATURE {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_CODE_SIGNATURE else {
-            throw MachOError.LoadCommandError("Invalid LC_CODE_SIGNATURE ID")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
         self.offset = try UInt32(parsing: &input, endianness: endianness)
         self.size = try UInt32(parsing: &input, endianness: endianness)
     }

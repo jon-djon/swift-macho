@@ -9,6 +9,7 @@ import BinaryParsing
 import Foundation
 
 public struct LC_SYMTAB: LoadCommand {
+    public static let expectedID: LoadCommandHeader.ID = .LC_SYMTAB
     public let header: LoadCommandHeader
     public let symbolTableOffset: UInt32
     public let numSymbols: UInt32
@@ -26,10 +27,7 @@ extension LC_SYMTAB {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
 
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_SYMTAB else {
-            throw MachOError.LoadCommandError("Invalid LC_SYMTAB")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
 
         self.symbolTableOffset = try UInt32(parsing: &input, endianness: endianness)
         self.numSymbols = try UInt32(parsing: &input, endianness: endianness)

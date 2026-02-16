@@ -8,6 +8,7 @@ import BinaryParsing
 import Foundation
 
 public struct LC_UUID: LoadCommand {
+    public static let expectedID: LoadCommandHeader.ID = .LC_UUID
     public let header: LoadCommandHeader
     public let range: Range<Int>
 
@@ -28,10 +29,7 @@ extension LC_UUID {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
 
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_UUID else {
-            throw MachOError.LoadCommandError("Invalid LC_UUID")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
         self._uuid = try InlineArray<16, UInt8>(parsing: &input)
     }
 }

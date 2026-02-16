@@ -9,6 +9,7 @@ import Foundation
 import BinaryParsing
 
 public struct LC_DYLD_EXPORTS_TRIE: LoadCommand {
+    public static let expectedID: LoadCommandHeader.ID = .LC_DYLD_EXPORTS_TRIE
     public let header: LoadCommandHeader
     public let range: Range<Int>
     
@@ -20,10 +21,7 @@ extension LC_DYLD_EXPORTS_TRIE {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
         
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_DYLD_EXPORTS_TRIE else {
-            throw MachOError.LoadCommandError("Invalid LC_DYLD_EXPORTS_TRIE")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
         
         self.offset = try UInt32(parsingLittleEndian: &input)
         self.size = try UInt32(parsingLittleEndian: &input)

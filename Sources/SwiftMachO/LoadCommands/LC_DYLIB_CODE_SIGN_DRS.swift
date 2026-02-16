@@ -9,6 +9,7 @@ import Foundation
 import BinaryParsing
 
 public struct LC_DYLIB_CODE_SIGN_DRS: LoadCommand {
+    public static let expectedID: LoadCommandHeader.ID = .LC_DYLIB_CODE_SIGN_DRS
     public let header: LoadCommandHeader
     public let range: Range<Int>
     
@@ -20,10 +21,7 @@ extension LC_DYLIB_CODE_SIGN_DRS {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
         
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_DYLIB_CODE_SIGN_DRS else {
-            throw MachOError.LoadCommandError("Invalid LC_DYLIB_CODE_SIGN_DRS")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
         
         self.offset = try UInt32(parsingLittleEndian: &input)
         self.size = try UInt32(parsingLittleEndian: &input)

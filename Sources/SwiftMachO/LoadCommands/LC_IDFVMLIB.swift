@@ -9,6 +9,7 @@ import Foundation
 import BinaryParsing
 
 public struct LC_IDFVMLIB: LoadCommand {
+    public static let expectedID: LoadCommandHeader.ID = .LC_IDFVMLIB
     public let header: LoadCommandHeader
     public let range: Range<Int>
 }
@@ -17,10 +18,7 @@ extension LC_IDFVMLIB {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
         
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_IDFVMLIB else {
-            throw MachOError.LoadCommandError("Invalid LC_IDFVMLIB")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
     }
 }
 

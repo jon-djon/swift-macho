@@ -9,6 +9,7 @@ import BinaryParsing
 import Foundation
 
 public struct LC_DYLD_INFO_ONLY: LoadCommand {
+    public static let expectedID: LoadCommandHeader.ID = .LC_DYLD_INFO_ONLY
     public let header: LoadCommandHeader
     public let rebaseOff: UInt32
     public let rebaseSize: UInt32
@@ -28,10 +29,7 @@ extension LC_DYLD_INFO_ONLY {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
 
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_DYLD_INFO_ONLY else {
-            throw MachOError.LoadCommandError("Invalid LC_DYLD_INFO_ONLY")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
 
         self.rebaseOff = try UInt32(parsing: &input, endianness: endianness)
         self.rebaseSize = try UInt32(parsing: &input, endianness: endianness)

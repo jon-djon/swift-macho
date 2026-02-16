@@ -9,6 +9,7 @@ import BinaryParsing
 import Foundation
 
 public struct LC_ID_DYLINKER: LoadCommand {
+    public static let expectedID: LoadCommandHeader.ID = .LC_ID_DYLINKER
     public let header: LoadCommandHeader
     public let range: Range<Int>
     public let nameOffset: UInt32
@@ -19,10 +20,7 @@ extension LC_ID_DYLINKER {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
 
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_ID_DYLINKER else {
-            throw MachOError.LoadCommandError("Invalid LC_ID_DYLINKER")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
         self.nameOffset = try UInt32(parsing: &input, endianness: endianness)
 
         try input.seek(toAbsoluteOffset: self.range.lowerBound)

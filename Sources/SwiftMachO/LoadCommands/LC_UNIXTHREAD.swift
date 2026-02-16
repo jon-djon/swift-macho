@@ -9,6 +9,7 @@ import BinaryParsing
 import Foundation
 
 public struct LC_UNIXTHREAD: LoadCommand {
+    public static let expectedID: LoadCommandHeader.ID = .LC_UNIXTHREAD
     public let header: LoadCommandHeader
     public let flavor: Flavor
     public let count: UInt32
@@ -141,10 +142,7 @@ extension LC_UNIXTHREAD {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
 
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_UNIXTHREAD else {
-            throw MachOError.LoadCommandError("Invalid LC_UNIXTHREAD")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
 
         self.flavor = try Flavor(parsing: &input, endianness: endianness)
         self.count = try UInt32(parsing: &input, endianness: endianness)

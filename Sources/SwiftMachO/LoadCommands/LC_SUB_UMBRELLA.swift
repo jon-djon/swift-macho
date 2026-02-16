@@ -9,6 +9,7 @@ import BinaryParsing
 import Foundation
 
 public struct LC_SUB_UMBRELLA: LoadCommand {
+    public static let expectedID: LoadCommandHeader.ID = .LC_SUB_UMBRELLA
     public let header: LoadCommandHeader
     public let strOffset: UInt32
     public let name: String
@@ -22,10 +23,7 @@ extension LC_SUB_UMBRELLA {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
 
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_SUB_UMBRELLA else {
-            throw MachOError.LoadCommandError("Invalid LC_SUB_UMBRELLA")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
 
         self.strOffset = try UInt32(parsing: &input, endianness: endianness)
 

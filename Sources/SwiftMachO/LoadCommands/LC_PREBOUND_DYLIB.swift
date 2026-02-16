@@ -9,6 +9,7 @@ import Foundation
 import BinaryParsing
 
 public struct LC_PREBOUND_DYLIB: LoadCommand {
+    public static let expectedID: LoadCommandHeader.ID = .LC_PREBOUND_DYLIB
     public let header: LoadCommandHeader
     public let range: Range<Int>
 }
@@ -17,10 +18,7 @@ extension LC_PREBOUND_DYLIB {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
         
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_PREBOUND_DYLIB else {
-            throw MachOError.LoadCommandError("Invalid LC_PREBOUND_DYLIB")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
     }
 }
 

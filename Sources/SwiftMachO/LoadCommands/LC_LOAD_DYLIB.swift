@@ -9,6 +9,7 @@ import BinaryParsing
 import Foundation
 
 public struct LC_LOAD_DYLIB: LoadCommand {
+    public static let expectedID: LoadCommandHeader.ID = .LC_LOAD_DYLIB
     public let header: LoadCommandHeader
     public let range: Range<Int>
     public let strOffset: UInt32
@@ -24,10 +25,7 @@ extension LC_LOAD_DYLIB {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
 
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_LOAD_DYLIB else {
-            throw MachOError.LoadCommandError("Invalid LC_LOAD_DYLIB")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
 
         self.strOffset = try UInt32(parsing: &input, endianness: endianness)
         self.timestamp = try UInt32(parsing: &input, endianness: endianness)

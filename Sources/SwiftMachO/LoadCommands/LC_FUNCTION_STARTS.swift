@@ -9,6 +9,7 @@ import Foundation
 import BinaryParsing
 
 public struct LC_FUNCTION_STARTS: LoadCommand, LoadCommandLinkEdit {
+    public static let expectedID: LoadCommandHeader.ID = .LC_FUNCTION_STARTS
     public let range: Range<Int>
     public let header: LoadCommandHeader
     public let offset: UInt32
@@ -19,10 +20,7 @@ extension LC_FUNCTION_STARTS {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
         
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_FUNCTION_STARTS else {
-            throw MachOError.LoadCommandError("Invalid LC_FUNCTION_STARTS")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
         self.offset = try UInt32(parsingLittleEndian: &input)
         self.size = try UInt32(parsingLittleEndian: &input)
     }

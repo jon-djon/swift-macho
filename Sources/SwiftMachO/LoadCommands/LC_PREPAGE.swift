@@ -9,6 +9,7 @@ import Foundation
 import BinaryParsing
 
 public struct LC_PREPAGE: LoadCommand {
+    public static let expectedID: LoadCommandHeader.ID = .LC_PREPAGE
     public let header: LoadCommandHeader
     public let range: Range<Int>
 }
@@ -17,10 +18,7 @@ extension LC_PREPAGE {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
         
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_PREPAGE else {
-            throw MachOError.LoadCommandError("Invalid LC_PREPAGE")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
     }
 }
 

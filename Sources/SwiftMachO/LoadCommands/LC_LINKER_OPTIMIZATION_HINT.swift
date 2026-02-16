@@ -9,6 +9,7 @@ import Foundation
 import BinaryParsing
 
 public struct LC_LINKER_OPTIMIZATION_HINT: LoadCommand, LoadCommandLinkEdit {
+    public static let expectedID: LoadCommandHeader.ID = .LC_LINKER_OPTIMIZATION_HINT
     public let header: LoadCommandHeader
     public let offset: UInt32
     public let size: UInt32
@@ -47,10 +48,7 @@ extension LC_LINKER_OPTIMIZATION_HINT {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
         
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_LINKER_OPTIMIZATION_HINT else {
-            throw MachOError.LoadCommandError("Invalid LC_LINKER_OPTIMIZATION_HINT")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
         self.offset = try UInt32(parsing: &input, endianness: .little)
         self.size = try UInt32(parsing: &input, endianness: .little)
     }

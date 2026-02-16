@@ -9,6 +9,7 @@ import Foundation
 import BinaryParsing
 
 public struct LC_DATA_IN_CODE: LoadCommand {
+    public static let expectedID: LoadCommandHeader.ID = .LC_DATA_IN_CODE
     public let header: LoadCommandHeader
     public let range: Range<Int>
     
@@ -63,10 +64,7 @@ extension LC_DATA_IN_CODE {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
         
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_DATA_IN_CODE else {
-            throw MachOError.LoadCommandError("Invalid LC_DATA_IN_CODE")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
         self.offset = try UInt32(parsing: &input, endianness: endianness)
         self.size = try UInt32(parsing: &input, endianness: endianness)
     }

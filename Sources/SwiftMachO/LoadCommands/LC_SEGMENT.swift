@@ -48,6 +48,7 @@ extension Section32 {
 }
 
 public struct LC_SEGMENT: LoadCommand {
+    public static let expectedID: LoadCommandHeader.ID = .LC_SEGMENT
     public let header: LoadCommandHeader
     public let name: String
     public let vmaddr: UInt32
@@ -67,10 +68,7 @@ extension LC_SEGMENT {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
 
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_SEGMENT else {
-            throw MachOError.LoadCommandError("Invalid LC_SEGMENT")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
         var span = try input.sliceSpan(byteCount: 16)
         self.name = String(parsingUTF8: &span)
 

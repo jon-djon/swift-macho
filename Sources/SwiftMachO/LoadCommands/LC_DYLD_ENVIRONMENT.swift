@@ -9,6 +9,7 @@ import BinaryParsing
 import Foundation
 
 public struct LC_DYLD_ENVIRONMENT: LoadCommand {
+    public static let expectedID: LoadCommandHeader.ID = .LC_DYLD_ENVIRONMENT
     public let header: LoadCommandHeader
     public let range: Range<Int>
 
@@ -22,10 +23,7 @@ extension LC_DYLD_ENVIRONMENT {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
 
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_DYLD_ENVIRONMENT else {
-            throw MachOError.LoadCommandError("Invalid LC_DYLD_ENVIRONMENT")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
 
         self.nameOffset = try UInt32(parsing: &input, endianness: endianness)
 

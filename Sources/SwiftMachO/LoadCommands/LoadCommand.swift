@@ -8,11 +8,23 @@ import Foundation
 import BinaryParsing
 
 public protocol LoadCommand: CustomStringConvertible, Displayable, Parseable {
+    static var expectedID: LoadCommandHeader.ID { get }
     var header: LoadCommandHeader { get }
 }
 
 extension LoadCommand {
     public var title: String { "\(Self.self)" }
+
+    public static func parseAndValidateHeader(
+        from input: inout ParserSpan,
+        endianness: Endianness
+    ) throws -> LoadCommandHeader {
+        let header = try LoadCommandHeader(parsing: &input, endianness: endianness)
+        guard header.id == Self.expectedID else {
+            throw MachOError.LoadCommandError("Invalid \(Self.self)")
+        }
+        return header
+    }
 }
 
 public protocol LoadCommandLinkEdit {

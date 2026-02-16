@@ -9,6 +9,7 @@ import BinaryParsing
 import Foundation
 
 public struct LC_FILESET_ENTRY: LoadCommand {
+    public static let expectedID: LoadCommandHeader.ID = .LC_FILESET_ENTRY
     public let header: LoadCommandHeader
     public let range: Range<Int>
 
@@ -30,10 +31,7 @@ extension LC_FILESET_ENTRY {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
 
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_FILESET_ENTRY else {
-            throw MachOError.LoadCommandError("Invalid LC_FILESET_ENTRY")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
 
         self.vmaddr = try UInt64(parsing: &input, endianness: endianness)
         self.fileoff = try UInt64(parsing: &input, endianness: endianness)

@@ -9,6 +9,7 @@ import Foundation
 import BinaryParsing
 
 public struct LC_DYSYMTAB: LoadCommand {
+    public static let expectedID: LoadCommandHeader.ID = .LC_DYSYMTAB
     public let header: LoadCommandHeader
     public let localSymbolIndex: UInt32
     public let numLocalSymbols: UInt32
@@ -22,10 +23,7 @@ extension LC_DYSYMTAB {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
         
-        self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
-        guard header.id == .LC_DYSYMTAB else {
-            throw MachOError.LoadCommandError("Invalid LC_DYSYMTAB")
-        }
+        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
         self.localSymbolIndex = try UInt32(parsing: &input, endianness: endianness)
         self.numLocalSymbols = try UInt32(parsing: &input, endianness: endianness)
         self.externalSymbolIndex = try UInt32(parsing: &input, endianness: endianness)
