@@ -167,49 +167,25 @@ extension LC_SEGMENT_64: Displayable {
         """
     }
     public var fields: [DisplayableField] {
-        [
-            .init(
-                label: "Command ID", stringValue: header.id.description, offset: 0, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4,
-                children: nil, obj: self),
-            .init(label: "Name", stringValue: name, offset: 8, size: 16, children: nil, obj: self),
-            .init(
-                label: "VM Address", stringValue: vmaddr.hexDescription, offset: 24, size: 8,
-                children: nil, obj: self),
-            .init(
-                label: "VM Size", stringValue: vmsize.description, offset: 32, size: 8,
-                children: nil, obj: self),
-            .init(
-                label: "File Offset", stringValue: fileOffset.description, offset: 40, size: 8,
-                children: nil, obj: self),
-            .init(
-                label: "File Size", stringValue: fileSize.description, offset: 48, size: 8,
-                children: nil, obj: self),
-            .init(
-                label: "Max Protections", stringValue: maxProt.description, offset: 56, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Initial Protections", stringValue: initProt.description, offset: 60,
-                size: 4, children: nil, obj: self),
-            .init(
-                label: "Number of Sections", stringValue: nsects.description, offset: 64, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Flags", stringValue: flags.description, offset: 68, size: 4, children: nil,
-                obj: self),
-            .init(
-                label: "Sections", stringValue: "\(nsects.description) Sections", offset: 72,
-                size: Int(nsects) * Section64.size,
-                children: sections.enumerated().map { (index: Int, section: Section64) in
-                    .init(
-                        label: "Section \(index.description)", stringValue: section.description,
-                        offset: 72 + index * Section64.size, size: 4, children: section.fields,
-                        obj: self)
-                },
-                obj: self),
-        ]
+        var b = fieldBuilder()
+        b.add(label: "Name", stringValue: name, size: 16)
+        b.add(label: "VM Address", stringValue: vmaddr.hexDescription, size: 8)
+        b.add(label: "VM Size", stringValue: vmsize.description, size: 8)
+        b.add(label: "File Offset", stringValue: fileOffset.description, size: 8)
+        b.add(label: "File Size", stringValue: fileSize.description, size: 8)
+        b.add(label: "Max Protections", stringValue: maxProt.description, size: 4)
+        b.add(label: "Initial Protections", stringValue: initProt.description, size: 4)
+        b.add(label: "Number of Sections", stringValue: nsects.description, size: 4)
+        b.add(label: "Flags", stringValue: flags.description, size: 4)
+        b.add(label: "Sections", stringValue: "\(nsects.description) Sections", offset: 72,
+              size: Int(nsects) * Section64.size,
+              children: sections.enumerated().map { (index: Int, section: Section64) in
+                  .init(
+                      label: "Section \(index.description)", stringValue: section.description,
+                      offset: 72 + index * Section64.size, size: 4, children: section.fields,
+                      obj: self)
+              })
+        return b.build()
     }
     public var children: [Displayable]? { nil }
 }

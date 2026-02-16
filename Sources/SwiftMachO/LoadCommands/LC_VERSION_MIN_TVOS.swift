@@ -30,20 +30,10 @@ extension LC_VERSION_MIN_TVOS {
 extension LC_VERSION_MIN_TVOS: Displayable {
     public var description: String { "" }
     public var fields: [DisplayableField] {
-        [
-            .init(
-                label: "Command ID", stringValue: header.id.description, offset: 0, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Version", stringValue: version.description, offset: 8, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "SDK", stringValue: sdk.description, offset: 12, size: 4, children: nil,
-                obj: self),
-        ]
+        var b = fieldBuilder()
+        b.add(label: "Version", stringValue: version.description, size: 4)
+        b.add(label: "SDK", stringValue: sdk.description, size: 4)
+        return b.build()
     }
     public var children: [Displayable]? { nil }
 }

@@ -98,35 +98,18 @@ extension LC_BUILD_VERSION: Displayable {
         "Specifies the target platform, minimum OS version, SDK version, and build tools used to create the binary."
     }
     public var fields: [DisplayableField] {
-        [
-            .init(
-                label: "Command ID", stringValue: header.id.description, offset: 0, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Platform", stringValue: platform.description, offset: 8, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Min OS", stringValue: minOS.description, offset: 12, size: 4, children: nil,
-                obj: self),
-            .init(
-                label: "SDK", stringValue: sdk.description, offset: 16, size: 4, children: nil,
-                obj: self),
-            .init(
-                label: "Number of Tools", stringValue: ntools.description, offset: 20, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Tools \(ntools.description)", stringValue: "", offset: 24, size: 4,
-                children: tools.enumerated().map { (index: Int, tool: BuildToolVersion) in
-                    .init(
-                        label: "Tool \(index.description)", stringValue: "",
-                        offset: 24 + (index * 8), size: 8, children: tool.fields, obj: self)
-                },
-                obj: self
-            ),
-        ]
+        var b = fieldBuilder()
+        b.add(label: "Platform", stringValue: platform.description, size: 4)
+        b.add(label: "Min OS", stringValue: minOS.description, size: 4)
+        b.add(label: "SDK", stringValue: sdk.description, size: 4)
+        b.add(label: "Number of Tools", stringValue: ntools.description, size: 4)
+        b.add(label: "Tools \(ntools.description)", stringValue: "", offset: 24, size: 4,
+              children: tools.enumerated().map { (index: Int, tool: BuildToolVersion) in
+                  .init(
+                      label: "Tool \(index.description)", stringValue: "",
+                      offset: 24 + (index * 8), size: 8, children: tool.fields, obj: self)
+              })
+        return b.build()
     }
     public var children: [Displayable]? { nil }
 }

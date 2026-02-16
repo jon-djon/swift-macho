@@ -34,25 +34,15 @@ extension LC_LINKER_OPTION {
 extension LC_LINKER_OPTION: Displayable {
     public var description: String { "" }
     public var fields: [DisplayableField] {
-        [
-            .init(
-                label: "Command ID", stringValue: header.id.description, offset: 0, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Option Count", stringValue: count.description, offset: 8, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Options", stringValue: "\(count.description) Options", offset: 8, size: 4,
-                children: options.enumerated().map { index, option in
-                    .init(
-                        label: "Option \(index)", stringValue: option.option, offset: option.offset,
-                        size: 4, children: nil, obj: self)
-                },
-                obj: self),
-        ]
+        var b = fieldBuilder()
+        b.add(label: "Option Count", stringValue: count.description, size: 4)
+        b.add(label: "Options", stringValue: "\(count.description) Options", offset: 8, size: 4,
+              children: options.enumerated().map { index, option in
+                  .init(
+                      label: "Option \(index)", stringValue: option.option, offset: option.offset,
+                      size: 4, children: nil, obj: self)
+              })
+        return b.build()
     }
     public var children: [Displayable]? { nil }
 }

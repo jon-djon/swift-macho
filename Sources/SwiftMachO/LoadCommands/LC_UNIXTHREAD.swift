@@ -267,20 +267,10 @@ extension LC_UNIXTHREAD: Displayable {
         """
     }
     public var fields: [DisplayableField] {
-        var fields: [DisplayableField] = [
-            .init(
-                label: "Command ID", stringValue: header.id.description, offset: 0, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Flavor", stringValue: flavor.description, offset: 8, size: 4, children: nil,
-                obj: self),
-            .init(
-                label: "Count", stringValue: count.description, offset: 12, size: 4, children: nil,
-                obj: self),
-        ]
+        var b = fieldBuilder()
+        b.add(label: "Flavor", stringValue: flavor.description, size: 4)
+        b.add(label: "Count", stringValue: count.description, size: 4)
+        var fields = b.build()
 
         switch threadState {
         case .x86_64(let state):

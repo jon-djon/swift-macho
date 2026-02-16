@@ -33,20 +33,10 @@ extension LC_ATOM_INFO: Displayable {
         "The **LC_ATOM_INFO** command is a Mach-O load command that contains the file offset and size of atom info data used by the linker. This information describes the boundaries of atoms (indivisible code or data blocks) in the __text section, which helps the linker perform optimizations and dead code stripping."
     }
     public var fields: [DisplayableField] {
-        [
-            .init(
-                label: "Command ID", stringValue: header.id.description, offset: 0, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Offset", stringValue: offset.hexDescription, offset: 8, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Size", stringValue: size.description, offset: 12, size: 4, children: nil,
-                obj: self),
-        ]
+        var b = fieldBuilder()
+        b.add(label: "Offset", stringValue: offset.hexDescription, size: 4)
+        b.add(label: "Size", stringValue: size.description, size: 4)
+        return b.build()
     }
     public var children: [Displayable]? { nil }
 }

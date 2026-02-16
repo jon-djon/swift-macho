@@ -31,20 +31,10 @@ extension LC_MAIN {
 extension LC_MAIN: Displayable {
     public var description: String { "" }
     public var fields: [DisplayableField] {
-        [
-            .init(
-                label: "Command ID", stringValue: header.id.description, offset: 0, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Entry Offset", stringValue: entryOff.description, offset: 8, size: 8,
-                children: nil, obj: self),
-            .init(
-                label: "Stack Size", stringValue: stackSize.description, offset: 16, size: 8,
-                children: nil, obj: self),
-        ]
+        var b = fieldBuilder()
+        b.add(label: "Entry Offset", stringValue: entryOff.description, size: 8)
+        b.add(label: "Stack Size", stringValue: stackSize.description, size: 8)
+        return b.build()
     }
     public var children: [Displayable]? { nil }
 }

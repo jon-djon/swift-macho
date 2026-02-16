@@ -39,20 +39,10 @@ extension LC_SUB_CLIENT {
 extension LC_SUB_CLIENT: Displayable {
     public var description: String { "" }
     public var fields: [DisplayableField] {
-        [
-            .init(
-                label: "Command ID", stringValue: header.id.description, offset: 0, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Name Offset", stringValue: strOffset.description, offset: 8, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Name", stringValue: name, offset: Int(strOffset), size: name.count,
-                children: nil, obj: self),
-        ]
+        var b = fieldBuilder()
+        b.add(label: "Name Offset", stringValue: strOffset.description, size: 4)
+        b.add(label: "Name", stringValue: name, offset: Int(strOffset), size: name.count)
+        return b.build()
     }
     public var children: [Displayable]? { nil }
 }

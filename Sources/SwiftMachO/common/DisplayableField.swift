@@ -7,6 +7,57 @@
 
 import Foundation
 
+public struct DisplayableFieldBuilder {
+    private var offset: Int = 0
+    private var fields: [DisplayableField] = []
+    private let obj: Parseable
+
+    public init(obj: Parseable) {
+        self.obj = obj
+    }
+
+    @discardableResult
+    public mutating func add(
+        label: String,
+        stringValue: String,
+        size: Int,
+        children: [DisplayableField]? = nil
+    ) -> Self {
+        fields.append(.init(
+            label: label,
+            stringValue: stringValue,
+            offset: offset,
+            size: size,
+            children: children,
+            obj: obj
+        ))
+        offset += size
+        return self
+    }
+
+    @discardableResult
+    public mutating func add(
+        label: String,
+        stringValue: String,
+        offset: Int,
+        size: Int,
+        children: [DisplayableField]? = nil
+    ) -> Self {
+        fields.append(.init(
+            label: label,
+            stringValue: stringValue,
+            offset: offset,
+            size: size,
+            children: children,
+            obj: obj
+        ))
+        self.offset = offset + size
+        return self
+    }
+
+    public func build() -> [DisplayableField] { fields }
+}
+
 public struct DisplayableField: Identifiable {
     public let id: UUID = UUID()
     public let label: String

@@ -15,6 +15,13 @@ public protocol LoadCommand: CustomStringConvertible, Displayable, Parseable {
 extension LoadCommand {
     public var title: String { "\(Self.self)" }
 
+    public func fieldBuilder() -> DisplayableFieldBuilder {
+        var b = DisplayableFieldBuilder(obj: self)
+        b.add(label: "Command ID", stringValue: header.id.description, size: 4)
+        b.add(label: "Command Size", stringValue: header.cmdSize.description, size: 4)
+        return b
+    }
+
     public static func parseAndValidateHeader(
         from input: inout ParserSpan,
         endianness: Endianness

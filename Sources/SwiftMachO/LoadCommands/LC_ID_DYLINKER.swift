@@ -32,20 +32,10 @@ extension LC_ID_DYLINKER {
 extension LC_ID_DYLINKER: Displayable {
     public var description: String { "" }
     public var fields: [DisplayableField] {
-        [
-            .init(
-                label: "Command ID", stringValue: header.id.description, offset: 0, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Name Offset", stringValue: nameOffset.description, offset: 8, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Name", stringValue: name, offset: Int(nameOffset), size: name.count,
-                children: nil, obj: self),
-        ]
+        var b = fieldBuilder()
+        b.add(label: "Name Offset", stringValue: nameOffset.description, size: 4)
+        b.add(label: "Name", stringValue: name, offset: Int(nameOffset), size: name.count)
+        return b.build()
     }
     public var children: [Displayable]? { nil }
 }

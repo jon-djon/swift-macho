@@ -5,8 +5,8 @@
 //  Created by jon on 10/16/25.
 //
 
-import Foundation
 import BinaryParsing
+import Foundation
 
 /// Encryption system identifier for LC_ENCRYPTION_INFO commands.
 /// A value of 0 indicates the binary is not encrypted, while non-zero values
@@ -17,7 +17,7 @@ public enum CryptID: UInt32 {
     case encrypted = 1  // FairPlay DRM
 }
 
-public struct LC_ENCRYPTION_INFO: LoadCommand {
+public struct LC_ENCRYPTION_INFO: LoadCommand, LoadCommandLinkEdit {
     public static let expectedID: LoadCommandHeader.ID = .LC_ENCRYPTION_INFO
     public let header: LoadCommandHeader
     public let range: Range<Int>
@@ -30,9 +30,9 @@ public struct LC_ENCRYPTION_INFO: LoadCommand {
 extension LC_ENCRYPTION_INFO {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
-        
+
         self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
-        
+
         self.offset = try UInt32(parsing: &input, endianness: endianness)
         self.size = try UInt32(parsing: &input, endianness: endianness)
         self.cryptID = try CryptID(parsing: &input, endianness: endianness)
@@ -41,15 +41,15 @@ extension LC_ENCRYPTION_INFO {
 
 extension LC_ENCRYPTION_INFO: Displayable {
     public var title: String { "\(Self.self) TODO" }
-    public var description: String { "Contains information about an encrypted segment in a 32-bit binary, including the file offset, size, and encryption system identifier." }
+    public var description: String {
+        "Contains information about an encrypted segment in a 32-bit binary, including the file offset, size, and encryption system identifier."
+    }
     public var fields: [DisplayableField] {
-        [
-            .init(label: "Command ID", stringValue: header.id.description, offset: 0, size: 4, children: nil, obj: self),
-            .init(label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4, children: nil, obj: self),
-            .init(label: "Offset", stringValue: offset.description, offset: 8, size: 4, children: nil, obj: self),
-            .init(label: "Size", stringValue: size.description, offset: 12, size: 4, children: nil, obj: self),
-            .init(label: "Crypt ID", stringValue: cryptID.description, offset: 16, size: 4, children: nil, obj: self),
-        ]
+        var b = fieldBuilder()
+        b.add(label: "Offset", stringValue: offset.description, size: 4)
+        b.add(label: "Size", stringValue: size.description, size: 4)
+        b.add(label: "Crypt ID", stringValue: cryptID.description, size: 4)
+        return b.build()
     }
     public var children: [Displayable]? { nil }
 }

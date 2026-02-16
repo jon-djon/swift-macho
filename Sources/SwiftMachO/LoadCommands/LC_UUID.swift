@@ -39,17 +39,9 @@ extension LC_UUID: Displayable {
         "The primary purpose of the LC_UUID command is to provide a unique, immutable identifier for the MachO binary."
     }
     public var fields: [DisplayableField] {
-        [
-            .init(
-                label: "ID", stringValue: header.id.description, offset: 0, size: 4, children: nil,
-                obj: self),
-            .init(
-                label: "Size", stringValue: header.cmdSize.description, offset: 4, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "UUID", stringValue: uuid.description, offset: 8, size: 16, children: nil,
-                obj: self),
-        ]
+        var b = fieldBuilder()
+        b.add(label: "UUID", stringValue: uuid.description, size: 16)
+        return b.build()
     }
     public var children: [Displayable]? { nil }
 }

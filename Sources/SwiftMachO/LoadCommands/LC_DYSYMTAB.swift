@@ -35,14 +35,12 @@ extension LC_DYSYMTAB: Displayable {
     public var title: String { "\(Self.self) TODO" }
     public var description: String { "The **LC_DYSYMTAB** (Dynamic Symbol Table) command is a Mach-O load command that specifies the organization and location of the auxiliary symbol tables used exclusively by the dynamic linker (dyld) at runtime. It is used in conjunction with the main symbol table defined by LC_SYMTAB to facilitate efficient and correct dynamic linking." }
     public var fields: [DisplayableField] {
-        [
-            .init(label: "Command ID", stringValue: header.id.description, offset: 0, size: 4, children: nil, obj: self),
-            .init(label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4, children: nil, obj: self),
-            .init(label: "Local Symbol Index", stringValue: localSymbolIndex.description, offset: 8, size: 4, children: nil, obj: self),
-            .init(label: "Number of Local Symbols", stringValue: numLocalSymbols.description, offset: 12, size: 4, children: nil, obj: self),
-            .init(label: "External Symbol Index", stringValue: externalSymbolIndex.description, offset: 16, size: 4, children: nil, obj: self),
-            .init(label: "Number of External Symbols", stringValue: numExternalSymbols.description, offset: 20, size: 4, children: nil, obj: self),
-        ]
+        var b = fieldBuilder()
+        b.add(label: "Local Symbol Index", stringValue: localSymbolIndex.description, size: 4)
+        b.add(label: "Number of Local Symbols", stringValue: numLocalSymbols.description, size: 4)
+        b.add(label: "External Symbol Index", stringValue: externalSymbolIndex.description, size: 4)
+        b.add(label: "Number of External Symbols", stringValue: numExternalSymbols.description, size: 4)
+        return b.build()
     }
     public var children: [Displayable]? { nil }
 }

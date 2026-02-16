@@ -41,20 +41,10 @@ extension LC_SUB_UMBRELLA: Displayable {
         "The **LC_SUB_UMBRELLA** command identifies a sub-umbrella framework that this framework re-exports. It specifies the name of another umbrella framework whose symbols should be visible to clients linking against this framework. This is part of the two-level namespace mechanism used in macOS frameworks."
     }
     public var fields: [DisplayableField] {
-        [
-            .init(
-                label: "Command ID", stringValue: header.id.description, offset: 0, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Name Offset", stringValue: strOffset.description, offset: 8, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Umbrella Name", stringValue: name, offset: Int(strOffset), size: name.count,
-                children: nil, obj: self),
-        ]
+        var b = fieldBuilder()
+        b.add(label: "Name Offset", stringValue: strOffset.description, size: 4)
+        b.add(label: "Umbrella Name", stringValue: name, offset: Int(strOffset), size: name.count)
+        return b.build()
     }
     public var children: [Displayable]? { nil }
 }

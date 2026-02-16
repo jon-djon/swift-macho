@@ -61,12 +61,10 @@ extension LC_LINKER_OPTIMIZATION_HINT: Displayable {
     public var title: String { "\(Self.self) TODO" }
     public var description: String { "" }
     public var fields: [DisplayableField] {
-        [
-            .init(label: "ID", stringValue: header.id.description, offset: 0, size: 4, children: nil, obj: self),
-            .init(label: "Size", stringValue: header.cmdSize.description, offset: 4, size: 4, children: nil, obj: self),
-            .init(label: "Offset", stringValue: offset.description, offset: 8, size: 4, children: nil, obj: self),
-            .init(label: "Size", stringValue: size.description, offset: 12, size: 4, children: nil, obj: self),
-        ]
+        var b = fieldBuilder()
+        b.add(label: "Offset", stringValue: offset.description, size: 4)
+        b.add(label: "Size", stringValue: size.description, size: 4)
+        return b.build()
     }
     public var children: [Displayable]? { nil }
 }

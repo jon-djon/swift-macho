@@ -25,11 +25,6 @@ extension LC_DYLD_INFO {
 extension LC_DYLD_INFO: Displayable {
     public var title: String { "\(Self.self) TODO" }
     public var description: String { "" }
-    public var fields: [DisplayableField] {
-        [
-            .init(label: "Command ID", stringValue: header.id.description, offset: 0, size: 4, children: nil, obj: self),
-            .init(label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4, children: nil, obj: self),
-        ]
-    }
+    public var fields: [DisplayableField] { fieldBuilder().build() }
     public var children: [Displayable]? { nil }
 }

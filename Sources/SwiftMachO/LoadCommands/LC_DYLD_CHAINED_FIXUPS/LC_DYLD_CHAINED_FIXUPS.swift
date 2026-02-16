@@ -33,20 +33,10 @@ extension LC_DYLD_CHAINED_FIXUPS: Displayable {
         "The **LC_DYLD_CHAINED_FIXUPS** command is a Mach-O load command that specifies the location and size of the chained fixups data used by the dynamic linker (dyld) to apply rebasing and binding operations at runtime. Chained fixups are a modern, highly optimized data format that significantly reduces the size of dynamic linker information and accelerates application launch times by allowing dyld to process fixups more efficiently."
     }
     public var fields: [DisplayableField] {
-        [
-            .init(
-                label: "Command ID", stringValue: header.id.description, offset: 0, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Data Offset", stringValue: offset.hexDescription, offset: 8, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Data Size", stringValue: size.description, offset: 12, size: 4,
-                children: nil, obj: self),
-        ]
+        var b = fieldBuilder()
+        b.add(label: "Data Offset", stringValue: offset.hexDescription, size: 4)
+        b.add(label: "Data Size", stringValue: size.description, size: 4)
+        return b.build()
     }
     public var children: [Displayable]? { nil }
 }

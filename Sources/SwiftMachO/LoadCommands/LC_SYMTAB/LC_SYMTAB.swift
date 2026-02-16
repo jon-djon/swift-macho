@@ -41,26 +41,12 @@ extension LC_SYMTAB: Displayable {
         "The **LC_SYMTAB** command is a Mach-O load command that specifies the location and size of the Symbol Table and the String Table within the binary file. Its purpose is to provide the static linker (during the build process), the dynamic linker (dyld) at runtime, and debugging tools (like lldb and nm) with the necessary metadata to resolve names to addresses."
     }
     public var fields: [DisplayableField] {
-        [
-            .init(
-                label: "Command ID", stringValue: header.id.description, offset: 0, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Symbol Table Offset", stringValue: symbolTableOffset.description, offset: 8,
-                size: 4, children: nil, obj: self),
-            .init(
-                label: "Number of Symbols", stringValue: numSymbols.description, offset: 12,
-                size: 4, children: nil, obj: self),
-            .init(
-                label: "String Table Offset", stringValue: stringTableOffset.description,
-                offset: 16, size: 4, children: nil, obj: self),
-            .init(
-                label: "String Table Size", stringValue: stringTableSize.description, offset: 20,
-                size: 4, children: nil, obj: self),
-        ]
+        var b = fieldBuilder()
+        b.add(label: "Symbol Table Offset", stringValue: symbolTableOffset.description, size: 4)
+        b.add(label: "Number of Symbols", stringValue: numSymbols.description, size: 4)
+        b.add(label: "String Table Offset", stringValue: stringTableOffset.description, size: 4)
+        b.add(label: "String Table Size", stringValue: stringTableSize.description, size: 4)
+        return b.build()
     }
     public var children: [Displayable]? { nil }
 }

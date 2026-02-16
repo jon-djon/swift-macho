@@ -50,29 +50,13 @@ extension LC_FILESET_ENTRY: Displayable {
         "Specifies an entry in a fileset (kernel collection), containing the virtual address, file offset, and identifier for a Mach-O binary within the container."
     }
     public var fields: [DisplayableField] {
-        [
-            .init(
-                label: "Command ID", stringValue: header.id.description, offset: 0, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "VM Address", stringValue: vmaddr.hexDescription, offset: 8, size: 8,
-                children: nil, obj: self),
-            .init(
-                label: "File Offset", stringValue: fileoff.hexDescription, offset: 16, size: 8,
-                children: nil, obj: self),
-            .init(
-                label: "Entry ID Offset", stringValue: entryIdOffset.description, offset: 24,
-                size: 4, children: nil, obj: self),
-            .init(
-                label: "Reserved", stringValue: reserved.description, offset: 28, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Entry ID", stringValue: entryId, offset: Int(entryIdOffset),
-                size: entryId.count, children: nil, obj: self),
-        ]
+        var b = fieldBuilder()
+        b.add(label: "VM Address", stringValue: vmaddr.hexDescription, size: 8)
+        b.add(label: "File Offset", stringValue: fileoff.hexDescription, size: 8)
+        b.add(label: "Entry ID Offset", stringValue: entryIdOffset.description, size: 4)
+        b.add(label: "Reserved", stringValue: reserved.description, size: 4)
+        b.add(label: "Entry ID", stringValue: entryId, offset: Int(entryIdOffset), size: entryId.count)
+        return b.build()
     }
     public var children: [Displayable]? { nil }
 }

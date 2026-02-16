@@ -28,17 +28,9 @@ extension LC_SOURCE_VERSION {
 extension LC_SOURCE_VERSION: Displayable {
     public var description: String { "" }
     public var fields: [DisplayableField] {
-        [
-            .init(
-                label: "Command ID", stringValue: header.id.description, offset: 0, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Version", stringValue: version.description, offset: 8, size: 8,
-                children: nil, obj: self),
-        ]
+        var b = fieldBuilder()
+        b.add(label: "Version", stringValue: version.description, size: 8)
+        return b.build()
     }
     public var children: [Displayable]? { nil }
 }

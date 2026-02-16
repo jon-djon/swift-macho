@@ -197,20 +197,10 @@ extension LC_SEGMENT_SPLIT_INFO: Displayable {
         """
     }
     public var fields: [DisplayableField] {
-        [
-            .init(
-                label: "Command ID", stringValue: header.id.description, offset: 0, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Data Offset", stringValue: offset.hexDescription, offset: 8, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Data Size", stringValue: size.description, offset: 12, size: 4,
-                children: nil, obj: self),
-        ]
+        var b = fieldBuilder()
+        b.add(label: "Data Offset", stringValue: offset.hexDescription, size: 4)
+        b.add(label: "Data Size", stringValue: size.description, size: 4)
+        return b.build()
     }
     public var children: [Displayable]? { nil }
 }

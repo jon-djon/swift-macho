@@ -45,29 +45,13 @@ extension LC_REEXPORT_DYLIB {
 extension LC_REEXPORT_DYLIB: Displayable {
     public var description: String { "" }
     public var fields: [DisplayableField] {
-        [
-            .init(
-                label: "Command ID", stringValue: header.id.description, offset: 0, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Name Offset", stringValue: strOffset.description, offset: 8, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Timestamp", stringValue: timestamp.description, offset: 12, size: 4,
-                children: nil, obj: self),
-            .init(
-                label: "Current Version", stringValue: currentVersion.description, offset: 16,
-                size: 4, children: nil, obj: self),
-            .init(
-                label: "Compatibility Version", stringValue: compatibilityVersion.description,
-                offset: 20, size: 4, children: nil, obj: self),
-            .init(
-                label: "Name", stringValue: name, offset: Int(strOffset), size: name.count,
-                children: nil, obj: self),
-        ]
+        var b = fieldBuilder()
+        b.add(label: "Name Offset", stringValue: strOffset.description, size: 4)
+        b.add(label: "Timestamp", stringValue: timestamp.description, size: 4)
+        b.add(label: "Current Version", stringValue: currentVersion.description, size: 4)
+        b.add(label: "Compatibility Version", stringValue: compatibilityVersion.description, size: 4)
+        b.add(label: "Name", stringValue: name, offset: Int(strOffset), size: name.count)
+        return b.build()
     }
     public var children: [Displayable]? { nil }
 }
