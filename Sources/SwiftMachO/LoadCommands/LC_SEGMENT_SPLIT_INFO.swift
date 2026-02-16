@@ -5,8 +5,8 @@
 //  Created by jon on 10/16/25.
 //
 
-import Foundation
 import BinaryParsing
+import Foundation
 
 public struct LC_SEGMENT_SPLIT_INFO: LoadCommand, LoadCommandLinkEdit {
     public let header: LoadCommandHeader
@@ -20,18 +20,18 @@ public struct LC_SEGMENT_SPLIT_INFO: LoadCommand, LoadCommandLinkEdit {
 /// The kind of pointer adjustment in split segment info v2
 @CaseName
 public enum SplitSegInfoV2Kind: UInt8 {
-    case pointer64 = 1          // DYLD_CACHE_ADJ_V2_POINTER_64
-    case delta64 = 2            // DYLD_CACHE_ADJ_V2_DELTA_64
-    case delta32 = 3            // DYLD_CACHE_ADJ_V2_DELTA_32
-    case arm64ADRP = 4          // DYLD_CACHE_ADJ_V2_ARM64_ADRP
-    case arm64Off12 = 5         // DYLD_CACHE_ADJ_V2_ARM64_OFF12
-    case arm64Br26 = 6          // DYLD_CACHE_ADJ_V2_ARM64_BR26
-    case armMovwMovt = 7        // DYLD_CACHE_ADJ_V2_ARM_MOVW_MOVT
-    case armBr24 = 8            // DYLD_CACHE_ADJ_V2_ARM_BR24
-    case thumbMovwMovt = 9      // DYLD_CACHE_ADJ_V2_THUMB_MOVW_MOVT
-    case thumbBr22 = 10         // DYLD_CACHE_ADJ_V2_THUMB_BR22
-    case imageOff32 = 11        // DYLD_CACHE_ADJ_V2_IMAGE_OFF_32
-    case threaded = 12          // DYLD_CACHE_ADJ_V2_THREADED_POINTER_64
+    case pointer64 = 1  // DYLD_CACHE_ADJ_V2_POINTER_64
+    case delta64 = 2  // DYLD_CACHE_ADJ_V2_DELTA_64
+    case delta32 = 3  // DYLD_CACHE_ADJ_V2_DELTA_32
+    case arm64ADRP = 4  // DYLD_CACHE_ADJ_V2_ARM64_ADRP
+    case arm64Off12 = 5  // DYLD_CACHE_ADJ_V2_ARM64_OFF12
+    case arm64Br26 = 6  // DYLD_CACHE_ADJ_V2_ARM64_BR26
+    case armMovwMovt = 7  // DYLD_CACHE_ADJ_V2_ARM_MOVW_MOVT
+    case armBr24 = 8  // DYLD_CACHE_ADJ_V2_ARM_BR24
+    case thumbMovwMovt = 9  // DYLD_CACHE_ADJ_V2_THUMB_MOVW_MOVT
+    case thumbBr22 = 10  // DYLD_CACHE_ADJ_V2_THUMB_BR22
+    case imageOff32 = 11  // DYLD_CACHE_ADJ_V2_IMAGE_OFF_32
+    case threaded = 12  // DYLD_CACHE_ADJ_V2_THREADED_POINTER_64
 }
 
 /// An individual fixup location from split segment info
@@ -41,7 +41,7 @@ public struct SplitSegInfoFixup: Parseable {
     public let fromSectionOffset: UInt
     public let toSectionIndex: UInt
     public let toSectionOffset: UInt
-    
+
     public let range: Range<Int>
 }
 
@@ -94,14 +94,15 @@ extension SplitSegInfo {
             currentOffset += delta
 
             // V1 format doesn't have kind/section info, use defaults
-            fixups.append(SplitSegInfoFixup(
-                kind: .pointer64,
-                fromSectionIndex: 0,
-                fromSectionOffset: currentOffset,
-                toSectionIndex: 0,
-                toSectionOffset: 0,
-                range: start..<input.startPosition
-            ))
+            fixups.append(
+                SplitSegInfoFixup(
+                    kind: .pointer64,
+                    fromSectionIndex: 0,
+                    fromSectionOffset: currentOffset,
+                    toSectionIndex: 0,
+                    toSectionOffset: 0,
+                    range: start..<input.startPosition
+                ))
         }
 
         return fixups
@@ -156,14 +157,15 @@ extension SplitSegInfo {
                         let fromOffsetDelta = try UInt(parsingLEB128: &input)
                         fromSectionOffset += fromOffsetDelta
 
-                        fixups.append(SplitSegInfoFixup(
-                            kind: kind,
-                            fromSectionIndex: fromSectionIndex,
-                            fromSectionOffset: fromSectionOffset,
-                            toSectionIndex: toSectionIndex,
-                            toSectionOffset: toSectionOffset,
-                            range: kindStart..<input.startPosition
-                        ))
+                        fixups.append(
+                            SplitSegInfoFixup(
+                                kind: kind,
+                                fromSectionIndex: fromSectionIndex,
+                                fromSectionOffset: fromSectionOffset,
+                                toSectionIndex: toSectionIndex,
+                                toSectionOffset: toSectionOffset,
+                                range: kindStart..<input.startPosition
+                            ))
                     }
                 }
             }
@@ -176,7 +178,7 @@ extension SplitSegInfo {
 extension LC_SEGMENT_SPLIT_INFO {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
-        
+
         self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
         guard header.id == .LC_SEGMENT_SPLIT_INFO else {
             throw MachOError.LoadCommandError("Invalid LC_SEGMENT_SPLIT_INFO")
@@ -187,20 +189,29 @@ extension LC_SEGMENT_SPLIT_INFO {
 }
 
 extension LC_SEGMENT_SPLIT_INFO: Displayable {
-    public var title: String { "\(Self.self)" }
-    public var description: String { """
+    public var description: String {
+        """
         Contains information used to split segments between read-only and read-write portions.
 
         This data in `__LINKEDIT` helps the dynamic linker optimize memory usage by allowing \
         shared libraries to share read-only pages across processes while keeping writable data private. \
         Used in conjunction with the `MH_SPLIT_SEGS` header flag.
-        """ }
+        """
+    }
     public var fields: [DisplayableField] {
         [
-            .init(label: "Command ID", stringValue: header.id.description, offset: 0, size: 4, children: nil, obj: self),
-            .init(label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4, children: nil, obj: self),
-            .init(label: "Data Offset", stringValue: offset.hexDescription, offset: 8, size: 4, children: nil, obj: self),
-            .init(label: "Data Size", stringValue: size.description, offset: 12, size: 4, children: nil, obj: self),
+            .init(
+                label: "Command ID", stringValue: header.id.description, offset: 0, size: 4,
+                children: nil, obj: self),
+            .init(
+                label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4,
+                children: nil, obj: self),
+            .init(
+                label: "Data Offset", stringValue: offset.hexDescription, offset: 8, size: 4,
+                children: nil, obj: self),
+            .init(
+                label: "Data Size", stringValue: size.description, offset: 12, size: 4,
+                children: nil, obj: self),
         ]
     }
     public var children: [Displayable]? { nil }
@@ -209,15 +220,23 @@ extension LC_SEGMENT_SPLIT_INFO: Displayable {
 extension SplitSegInfo: Displayable {
     public var title: String { "SplitSegInfo" }
     public var description: String {
-        version == 2 ? "Split segment info v2 format with detailed fixup information" : "Split segment info v1 format with offset deltas"
+        version == 2
+            ? "Split segment info v2 format with detailed fixup information"
+            : "Split segment info v1 format with offset deltas"
     }
     public var fields: [DisplayableField] {
         [
-            .init(label: "Version", stringValue: "v\(version)", offset: 0, size: 1, children: nil, obj: self),
-            .init(label: "Fixups", stringValue: "\(fixups.count) entries", offset: 1, size: range.count - 1,
-                  children: fixups.enumerated().map { index, fixup in
-                      .init(label: "Fixup \(index)", stringValue: fixup.description, offset: 0, size: 0, children: fixup.fields, obj: fixup)
-                  }, obj: self)
+            .init(
+                label: "Version", stringValue: "v\(version)", offset: 0, size: 1, children: nil,
+                obj: self),
+            .init(
+                label: "Fixups", stringValue: "\(fixups.count) entries", offset: 1,
+                size: range.count - 1,
+                children: fixups.enumerated().map { index, fixup in
+                    .init(
+                        label: "Fixup \(index)", stringValue: fixup.description, offset: 0, size: 0,
+                        children: fixup.fields, obj: fixup)
+                }, obj: self),
         ]
     }
     public var children: [Displayable]? { nil }
@@ -230,11 +249,21 @@ extension SplitSegInfoFixup: Displayable {
     }
     public var fields: [DisplayableField] {
         [
-            .init(label: "Kind", stringValue: kind.description, offset: 0, size: 0, children: nil, obj: self),
-            .init(label: "From Section Index", stringValue: fromSectionIndex.description, offset: 0, size: 0, children: nil, obj: self),
-            .init(label: "From Section Offset", stringValue: fromSectionOffset.hexDescription, offset: 0, size: 0, children: nil, obj: self),
-            .init(label: "To Section Index", stringValue: toSectionIndex.description, offset: 0, size: 0, children: nil, obj: self),
-            .init(label: "To Section Offset", stringValue: toSectionOffset.hexDescription, offset: 0, size: 0, children: nil, obj: self),
+            .init(
+                label: "Kind", stringValue: kind.description, offset: 0, size: 0, children: nil,
+                obj: self),
+            .init(
+                label: "From Section Index", stringValue: fromSectionIndex.description, offset: 0,
+                size: 0, children: nil, obj: self),
+            .init(
+                label: "From Section Offset", stringValue: fromSectionOffset.hexDescription,
+                offset: 0, size: 0, children: nil, obj: self),
+            .init(
+                label: "To Section Index", stringValue: toSectionIndex.description, offset: 0,
+                size: 0, children: nil, obj: self),
+            .init(
+                label: "To Section Offset", stringValue: toSectionOffset.hexDescription, offset: 0,
+                size: 0, children: nil, obj: self),
         ]
     }
     public var children: [Displayable]? { nil }

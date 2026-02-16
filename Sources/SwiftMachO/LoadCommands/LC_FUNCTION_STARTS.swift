@@ -51,7 +51,6 @@ extension FunctionStarts {
 
 
 extension LC_FUNCTION_STARTS: Displayable {
-    public var title: String { "\(Self.self)" }
     public var description: String { "" }
     public var fields: [DisplayableField] {
         [

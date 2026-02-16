@@ -11,6 +11,10 @@ public protocol LoadCommand: CustomStringConvertible, Displayable, Parseable {
     var header: LoadCommandHeader { get }
 }
 
+extension LoadCommand {
+    public var title: String { "\(Self.self)" }
+}
+
 public protocol LoadCommandLinkEdit {
     var offset: UInt32 { get }
     var size: UInt32 { get }

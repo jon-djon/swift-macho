@@ -156,7 +156,6 @@ extension LC_SEGMENT_64 {
 }
 
 extension LC_SEGMENT_64: Displayable {
-    public var title: String { "\(Self.self)" }
     public var description: String {
         """
         Defines a 64-bit segment of the binary that is mapped into memory at runtime.

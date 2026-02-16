@@ -73,7 +73,6 @@ extension LC_DATA_IN_CODE {
 }
 
 extension LC_DATA_IN_CODE: Displayable {
-    public var title: String { "\(Self.self)" }
     public var description: String { "" }
     public var fields: [DisplayableField] {
         [

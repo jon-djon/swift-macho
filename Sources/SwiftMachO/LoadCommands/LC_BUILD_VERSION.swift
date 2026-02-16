@@ -5,11 +5,11 @@
 //  Created by jon on 10/16/25.
 //
 
-import Foundation
 import BinaryParsing
+import Foundation
 
 // Are there more valid values?
-    // https://github.com/apple-oss-distributions/dyld/blob/main/common/MachOAnalyzer.cpp
+// https://github.com/apple-oss-distributions/dyld/blob/main/common/MachOAnalyzer.cpp
 @CaseName
 public enum ToolEnum: UInt32 {
     case TOOL_NONE = 0
@@ -53,15 +53,15 @@ public struct LC_BUILD_VERSION: LoadCommand {
     public let sdk: SemanticVersion
     public let ntools: UInt32
     public let tools: [BuildToolVersion]
-    
+
     public let range: Range<Int>
-    
+
     public struct BuildToolVersion: Parseable {
         public let tool: ToolEnum
         public let version: SemanticVersion
-        
+
         public let range: Range<Int>
-    
+
         static public let size: Int = 8
     }
 }
@@ -74,21 +74,20 @@ extension LC_BUILD_VERSION.BuildToolVersion {
     }
 }
 
-
 extension LC_BUILD_VERSION {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.range = input.parserRange.range
-        
+
         self.header = try LoadCommandHeader(parsing: &input, endianness: endianness)
         guard header.id == .LC_BUILD_VERSION else {
             throw MachOError.LoadCommandError("Invalid LC_BUILD_VERSION")
         }
-        
+
         self.platform = try PlatformEnum(parsing: &input, endianness: endianness)
         self.minOS = try SemanticVersion(parsing: &input, endianness: endianness)
         self.sdk = try SemanticVersion(parsing: &input, endianness: endianness)
         self.ntools = try UInt32(parsing: &input, endianness: endianness)
-        
+
         self.tools = try Array(parsing: &input, count: Int(self.ntools)) { input in
             var span = try input.sliceSpan(byteCount: BuildToolVersion.size)
             return try BuildToolVersion(parsing: &span, endianness: endianness)
@@ -97,21 +96,37 @@ extension LC_BUILD_VERSION {
 }
 
 extension LC_BUILD_VERSION: Displayable {
-    public var title: String { "\(Self.self)" }
-    public var description: String { "Specifies the target platform, minimum OS version, SDK version, and build tools used to create the binary." }
+    public var description: String {
+        "Specifies the target platform, minimum OS version, SDK version, and build tools used to create the binary."
+    }
     public var fields: [DisplayableField] {
         [
-            .init(label: "Command ID", stringValue: header.id.description, offset: 0, size: 4, children: nil, obj: self),
-            .init(label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4, children: nil, obj: self),
-            .init(label: "Platform", stringValue: platform.description, offset: 8, size: 4, children: nil, obj: self),
-            .init(label: "Min OS", stringValue: minOS.description, offset: 12, size: 4, children: nil, obj: self),
-            .init(label: "SDK", stringValue: sdk.description, offset: 16, size: 4, children: nil, obj: self),
-            .init(label: "Number of Tools", stringValue: ntools.description, offset: 20, size: 4, children: nil, obj: self),
-            .init(label: "Tools \(ntools.description)", stringValue: "", offset: 24, size: 4,
-                  children: tools.enumerated().map { (index: Int, tool: BuildToolVersion) in
-                        .init(label: "Tool \(index.description)", stringValue: "", offset: 24+(index*8), size: 8, children: tool.fields, obj: self)
-                  },
-                  obj: self
+            .init(
+                label: "Command ID", stringValue: header.id.description, offset: 0, size: 4,
+                children: nil, obj: self),
+            .init(
+                label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4,
+                children: nil, obj: self),
+            .init(
+                label: "Platform", stringValue: platform.description, offset: 8, size: 4,
+                children: nil, obj: self),
+            .init(
+                label: "Min OS", stringValue: minOS.description, offset: 12, size: 4, children: nil,
+                obj: self),
+            .init(
+                label: "SDK", stringValue: sdk.description, offset: 16, size: 4, children: nil,
+                obj: self),
+            .init(
+                label: "Number of Tools", stringValue: ntools.description, offset: 20, size: 4,
+                children: nil, obj: self),
+            .init(
+                label: "Tools \(ntools.description)", stringValue: "", offset: 24, size: 4,
+                children: tools.enumerated().map { (index: Int, tool: BuildToolVersion) in
+                    .init(
+                        label: "Tool \(index.description)", stringValue: "",
+                        offset: 24 + (index * 8), size: 8, children: tool.fields, obj: self)
+                },
+                obj: self
             ),
         ]
     }
@@ -123,8 +138,12 @@ extension LC_BUILD_VERSION.BuildToolVersion: Displayable {
     public var description: String { "\(tool) \(version)" }
     public var fields: [DisplayableField] {
         [
-            .init(label: "Tool", stringValue: tool.description, offset: 0, size: 4, children: nil, obj: self),
-            .init(label: "Version", stringValue: version.description, offset: 4, size: 4, children: nil, obj: self),
+            .init(
+                label: "Tool", stringValue: tool.description, offset: 0, size: 4, children: nil,
+                obj: self),
+            .init(
+                label: "Version", stringValue: version.description, offset: 4, size: 4,
+                children: nil, obj: self),
         ]
     }
     public var children: [Displayable]? { nil }

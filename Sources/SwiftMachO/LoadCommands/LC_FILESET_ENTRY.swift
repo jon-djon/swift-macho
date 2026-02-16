@@ -5,8 +5,8 @@
 //  Created by jon on 10/16/25.
 //
 
-import Foundation
 import BinaryParsing
+import Foundation
 
 public struct LC_FILESET_ENTRY: LoadCommand {
     public let header: LoadCommandHeader
@@ -48,17 +48,32 @@ extension LC_FILESET_ENTRY {
 }
 
 extension LC_FILESET_ENTRY: Displayable {
-    public var title: String { "\(Self.self)" }
-    public var description: String { "Specifies an entry in a fileset (kernel collection), containing the virtual address, file offset, and identifier for a Mach-O binary within the container." }
+    public var description: String {
+        "Specifies an entry in a fileset (kernel collection), containing the virtual address, file offset, and identifier for a Mach-O binary within the container."
+    }
     public var fields: [DisplayableField] {
         [
-            .init(label: "Command ID", stringValue: header.id.description, offset: 0, size: 4, children: nil, obj: self),
-            .init(label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4, children: nil, obj: self),
-            .init(label: "VM Address", stringValue: vmaddr.hexDescription, offset: 8, size: 8, children: nil, obj: self),
-            .init(label: "File Offset", stringValue: fileoff.hexDescription, offset: 16, size: 8, children: nil, obj: self),
-            .init(label: "Entry ID Offset", stringValue: entryIdOffset.description, offset: 24, size: 4, children: nil, obj: self),
-            .init(label: "Reserved", stringValue: reserved.description, offset: 28, size: 4, children: nil, obj: self),
-            .init(label: "Entry ID", stringValue: entryId, offset: Int(entryIdOffset), size: entryId.count, children: nil, obj: self),
+            .init(
+                label: "Command ID", stringValue: header.id.description, offset: 0, size: 4,
+                children: nil, obj: self),
+            .init(
+                label: "Command Size", stringValue: header.cmdSize.description, offset: 4, size: 4,
+                children: nil, obj: self),
+            .init(
+                label: "VM Address", stringValue: vmaddr.hexDescription, offset: 8, size: 8,
+                children: nil, obj: self),
+            .init(
+                label: "File Offset", stringValue: fileoff.hexDescription, offset: 16, size: 8,
+                children: nil, obj: self),
+            .init(
+                label: "Entry ID Offset", stringValue: entryIdOffset.description, offset: 24,
+                size: 4, children: nil, obj: self),
+            .init(
+                label: "Reserved", stringValue: reserved.description, offset: 28, size: 4,
+                children: nil, obj: self),
+            .init(
+                label: "Entry ID", stringValue: entryId, offset: Int(entryIdOffset),
+                size: entryId.count, children: nil, obj: self),
         ]
     }
     public var children: [Displayable]? { nil }
