@@ -34,8 +34,7 @@ extension LC_DYLD_CHAINED_FIXUPS: Displayable {
     }
     public var fields: [DisplayableField] {
         var b = fieldBuilder()
-        b.add(label: "Data Offset", stringValue: offset.hexDescription, size: 4)
-        b.add(label: "Data Size", stringValue: size.description, size: 4)
+        addLinkEditFields(to: &b)
         return b.build()
     }
     public var children: [Displayable]? { nil }

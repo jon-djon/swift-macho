@@ -46,8 +46,7 @@ extension LC_ENCRYPTION_INFO: Displayable {
     }
     public var fields: [DisplayableField] {
         var b = fieldBuilder()
-        b.add(label: "Offset", stringValue: offset.description, size: 4)
-        b.add(label: "Size", stringValue: size.description, size: 4)
+        addLinkEditFields(to: &b, offsetIsHex: false)
         b.add(label: "Crypt ID", stringValue: cryptID.description, size: 4)
         return b.build()
     }

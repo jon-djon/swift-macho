@@ -1,3 +1,4 @@
+import BinaryParsing
 //
 //  Untitled.swift
 //  swift-macho
@@ -5,7 +6,6 @@
 //  Created by jon on 9/29/25.
 //
 import Foundation
-import BinaryParsing
 
 public protocol LoadCommand: CustomStringConvertible, Displayable, Parseable {
     static var expectedID: LoadCommandHeader.ID { get }
@@ -39,10 +39,16 @@ public protocol LoadCommandLinkEdit {
     var size: UInt32 { get }
 }
 
+extension LoadCommand where Self: LoadCommandLinkEdit {
+    func addLinkEditFields(to b: inout DisplayableFieldBuilder, offsetIsHex: Bool = true) {
+        b.add(label: "Data Offset", stringValue: offset.hexDescription, size: 4)
+        b.add(label: "Data Size", stringValue: size.description, size: 4)
+    }
+}
+
 public struct LinkEditRaw: Parseable {
     public let range: Range<Int>
 }
-
 
 extension LinkEditRaw {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
@@ -55,7 +61,9 @@ extension LinkEditRaw: Displayable {
     public var description: String { "LinkEditRaw" }
     public var fields: [DisplayableField] {
         [
-            .init(label: "Range", stringValue: range.description, offset: 0, size: 0, children: nil, obj: self)
+            .init(
+                label: "Range", stringValue: range.description, offset: 0, size: 0, children: nil,
+                obj: self)
         ]
     }
     public var children: [Displayable]? { nil }
@@ -187,7 +195,6 @@ extension LoadCommandValue {
     }
 }
 
-
 extension LoadCommandValue: Displayable {
     public var range: Range<Int> { command.range }
     public var title: String { command.title }
@@ -196,19 +203,27 @@ extension LoadCommandValue: Displayable {
         switch self {
         case .LC_SYMTAB(let cmd, let symbols, let strings):
             cmd.fields + [
-                .init(label: "Symbols", stringValue: "\(symbols.count) Symbols", offset: 0, size: 0, children: symbols.enumerated().map { index, symbol in
-                    .init(label: "Symbol", stringValue: strings[index], offset: 0, size: 0, children: symbol.fields, obj: symbol)
-                }, obj: self)
+                .init(
+                    label: "Symbols", stringValue: "\(symbols.count) Symbols", offset: 0, size: 0,
+                    children: symbols.enumerated().map { index, symbol in
+                        .init(
+                            label: "Symbol", stringValue: strings[index], offset: 0, size: 0,
+                            children: symbol.fields, obj: symbol)
+                    }, obj: self)
             ]
         case .LC_FUNCTION_STARTS(let cmd, let starts):
             cmd.fields + starts.fields
         case .LC_DATA_IN_CODE(let cmd, let codes):
             cmd.fields + [
-                .init(label: "Codes", stringValue: "\(codes.count) Codes", offset: 0, size: 0, children: codes.enumerated().map { index, code in
-                        .init(label: "Code \(index)", stringValue: code.kind.description, offset: 0, size: 0, children: code.fields, obj: code)
-                }, obj: self)
+                .init(
+                    label: "Codes", stringValue: "\(codes.count) Codes", offset: 0, size: 0,
+                    children: codes.enumerated().map { index, code in
+                        .init(
+                            label: "Code \(index)", stringValue: code.kind.description, offset: 0,
+                            size: 0, children: code.fields, obj: code)
+                    }, obj: self)
             ]
-        
+
         default: command.fields
         }
     }
@@ -219,13 +234,11 @@ extension LoadCommandValue: Displayable {
         case .LC_FUNCTION_STARTS(_, _): []
         case .LC_LINKER_OPTIMIZATION_HINT(_, let le): [le]
         case .LC_DYLD_CHAINED_FIXUPS(_, let data): [data]
-//        case .LC_SEGMENT_SPLIT_INFO(_, let info): [info]
+        //        case .LC_SEGMENT_SPLIT_INFO(_, let info): [info]
         // case .LC_DATA_IN_CODE(_, let codes): []
-//        case .LC_DYLIB_CODE_SIGN_DRS(_, let le): [le]
-//        case .LC_DYLD_EXPORTS_TRIE(_, let le): [le]
+        //        case .LC_DYLIB_CODE_SIGN_DRS(_, let le): [le]
+        //        case .LC_DYLD_EXPORTS_TRIE(_, let le): [le]
         default: command.children
         }
     }
 }
-
-

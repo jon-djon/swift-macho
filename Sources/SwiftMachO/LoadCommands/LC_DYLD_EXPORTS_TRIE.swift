@@ -33,8 +33,7 @@ extension LC_DYLD_EXPORTS_TRIE: Displayable {
     public var description: String { "" }
     public var fields: [DisplayableField] {
         var b = fieldBuilder()
-        b.add(label: "Offset", stringValue: offset.description, size: 4)
-        b.add(label: "Size", stringValue: size.description, size: 4)
+        addLinkEditFields(to: &b, offsetIsHex: false)
         return b.build()
     }
     public var children: [Displayable]? { nil }
