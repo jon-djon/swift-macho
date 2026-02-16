@@ -147,7 +147,7 @@ extension MachO: ExpressibleByParsing {
         // Second pass to fill in deferred parsing items
         var loadCommands: [LoadCommandValue] = []
         for loadCommand in cmds {
-//            print(loadCommand.header.id.description)
+            print(loadCommand.header.id.description)
             switch loadCommand.header.id {
             case .LC_CODE_SIGNATURE:
                 guard let cmd = loadCommand as? LC_CODE_SIGNATURE else { throw MachOError.unknownError }
@@ -197,6 +197,7 @@ extension MachO: ExpressibleByParsing {
                 
                 let symbols:[Symbol] = try Array(parsing: &span, count: Int(cmd.numSymbols)) { input in
                     var symbolSpan = try input.sliceSpan(byteCount: is64Bit ? Symbol.size64 : Symbol.size32)
+                    print(symbolSpan.startPosition)
                     return try Symbol(parsing: &symbolSpan, endianness: endianness, is64it: is64Bit)
                 }
                 

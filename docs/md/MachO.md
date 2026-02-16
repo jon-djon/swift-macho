@@ -33,15 +33,86 @@ The magic number determines the binary format:
 | `macho32Swapped` | `0xCEFAEDFE` | 32-bit little-endian |
 | `macho64Swapped` | `0xCFFAEDFE` | 64-bit little-endian |
 
-### MachOHeader
+## MachO Header
 
-The header contains essential metadata:
+The Mach-O header immediately follows the magic number and contains essential metadata about the binary. The header size is 28 bytes for 64-bit binaries and 24 bytes for 32-bit binaries.
 
-- **CPU type and subtype** - Architecture (ARM64, x86_64, etc.)
-- **File type** - Executable, dynamic library, object file, etc.
-- **Number of load commands** - How many load commands follow
-- **Size of load commands** - Total byte size of all load commands
-- **Flags** - Various binary attributes (PIE, TWOLEVEL, DYLDLINK, etc.)
+### Header Fields
+
+| Field | Description | Offset (64-bit) | Offset (32-bit) | Size | Type |
+|-------|-------------|-----------------|-----------------|------|------|
+| CPU Type | Processor architecture type | 0 | 0 | 4 | `Int32` |
+| CPU Subtype | Specific processor variant | 4 | 4 | 4 | `Int32` |
+| File Type | Binary purpose (executable, library, etc.) | 8 | 8 | 4 | `UInt32` |
+| Number of Commands | Count of load commands that follow | 12 | 12 | 4 | `UInt32` |
+| Size of Commands | Total byte size of all load commands | 16 | 16 | 4 | `UInt32` |
+| Flags | Binary attributes and capabilities | 20 | 20 | 4 | `UInt32` |
+| Reserved | Reserved for future use (64-bit only) | 24 | - | 4 | `UInt32` |
+
+**Total size:** 28 bytes (64-bit) or 24 bytes (32-bit)
+
+### File Types
+
+The file type field indicates the binary's purpose:
+
+| Type | Value | Description |
+|------|-------|-------------|
+| `MH_OBJECT` | 0x1 | Relocatable object file (.o) |
+| `MH_EXECUTE` | 0x2 | Executable program |
+| `MH_FVMLIB` | 0x3 | Fixed VM shared library |
+| `MH_CORE` | 0x4 | Core dump file |
+| `MH_PRELOAD` | 0x5 | Preloaded executable |
+| `MH_DYLIB` | 0x6 | Dynamic library (.dylib) |
+| `MH_DYLINKER` | 0x7 | Dynamic linker (/usr/lib/dyld) |
+| `MH_BUNDLE` | 0x8 | Bundle/plugin (.bundle) |
+| `MH_DYLIB_STUB` | 0x9 | Stub library for static linking only |
+| `MH_DSYM` | 0xA | Debug symbols file (.dSYM) |
+| `MH_KEXT_BUNDLE` | 0xB | Kernel extension (.kext) |
+| `MH_FILESET` | 0xC | Fileset (e.g., kernel cache) |
+| `MH_GPU_EXECUTE` | 0xD | GPU executable |
+| `MH_GPU_DYLIB` | 0xE | GPU dynamic library |
+
+### Header Flags
+
+The flags field is a bitmask describing various binary attributes:
+
+| Flag | Value | Description |
+|------|-------|-------------|
+| `MH_NOUNDEFS` | 0x1 | No undefined references |
+| `MH_INCRLINK` | 0x2 | Output of incremental link |
+| `MH_DYLDLINK` | 0x4 | Input for dynamic linker |
+| `MH_BINDATLOAD` | 0x8 | Dynamic linker binds at load time |
+| `MH_PREBOUND` | 0x10 | Dynamic library is prebound |
+| `MH_SPLIT_SEGS` | 0x20 | Read-only and read-write segments split |
+| `MH_LAZY_INIT` | 0x40 | Shared library init routine run lazily |
+| `MH_TWOLEVEL` | 0x80 | Using two-level namespace bindings |
+| `MH_FORCE_FLAT` | 0x100 | Using flat namespace bindings |
+| `MH_NOMULTIDEFS` | 0x200 | No multiple definitions of symbols |
+| `MH_NOFIXPREBINDING` | 0x400 | Don't notify prebinding agent about this binary |
+| `MH_PREBINDABLE` | 0x800 | Binary is not prebound but can have its prebinding redone |
+| `MH_ALLMODSBOUND` | 0x1000 | All modules bound by the static linker |
+| `MH_SUBSECTIONS_VIA_SYMBOLS` | 0x2000 | Safe to divide sections into atoms |
+| `MH_CANONICAL` | 0x4000 | Binary is canonical (has no overlapping segments) |
+| `MH_WEAK_DEFINES` | 0x8000 | Defines weak external symbols |
+| `MH_BINDS_TO_WEAK` | 0x10000 | Uses weak external symbols |
+| `MH_ALLOW_STACK_EXECUTION` | 0x20000 | Stack is executable |
+| `MH_ROOT_SAFE` | 0x40000 | Safe to run with elevated privileges |
+| `MH_SETUID_SAFE` | 0x80000 | Safe for use in setuid/setgid programs |
+| `MH_NO_REEXPORTED_DYLIBS` | 0x100000 | No re-exported dynamic libraries |
+| `MH_PIE` | 0x200000 | Position-independent executable (ASLR) |
+| `MH_DEAD_STRIPPABLE_DYLIB` | 0x400000 | Dylib is not used, can be stripped |
+| `MH_HAS_TLV_DESCRIPTORS` | 0x800000 | Contains thread-local variable descriptors |
+| `MH_NO_HEAP_EXECUTION` | 0x1000000 | Heap is not executable |
+| `MH_APP_EXTENSION_SAFE` | 0x2000000 | Safe for use in app extensions |
+| `MH_NLIST_OUTOFSYNC_WITH_DYLDINFO` | 0x4000000 | Symbol table not in sync with dyld info |
+| `MH_SIM_SUPPORT` | 0x8000000 | Binary supports simulator |
+| `MH_DYLIB_IN_CACHE` | 0x80000000 | Dynamic library is in the shared cache |
+
+### Common Flag Combinations
+
+- **Modern executables:** `MH_DYLDLINK | MH_TWOLEVEL | MH_PIE | MH_NOUNDEFS`
+- **Dynamic libraries:** `MH_DYLDLINK | MH_TWOLEVEL | MH_NO_REEXPORTED_DYLIBS`
+- **App extensions:** `MH_DYLDLINK | MH_TWOLEVEL | MH_PIE | MH_APP_EXTENSION_SAFE`
 
 ## Load Commands
 

@@ -1,23 +1,19 @@
 // swift-tools-version:6.2
-import PackageDescription
 import CompilerPluginSupport
+import PackageDescription
 
 let package: Package = Package(
     name: "swift-macho",
     platforms: [
-        .macOS(.v26),
+        .macOS(.v26)
     ],
     products: [
         .library(
             name: "SwiftMachO",
             targets: ["SwiftMachO"]),
-//        .library(
-//            name: "SwiftMachOMacros",
-//            targets: ["SwiftMachO"]
-//        ),
         .executable(
             name: "macho",
-            targets: ["macho"])
+            targets: ["macho"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-asn1.git", from: "1.3.2"),
@@ -32,7 +28,7 @@ let package: Package = Package(
             name: "SwiftMachOMacros",
             dependencies: [
                 .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-                .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
+                .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
             ]
         ),
         .target(
@@ -41,26 +37,31 @@ let package: Package = Package(
                 .product(name: "BinaryParsing", package: "swift-binary-parsing"),
                 .product(name: "SwiftASN1", package: "swift-asn1"),
                 .product(name: "X509", package: "swift-certificates"),
-                "SwiftMachOMacros"
+                "SwiftMachOMacros",
             ],
             path: "Sources/SwiftMachO"
         ),
-        .executableTarget(name: "macho", dependencies: [
-            "SwiftMachO",
-            .product(name: "ArgumentParser", package: "swift-argument-parser"),
-        ]),
+        .executableTarget(
+            name: "macho",
+            dependencies: [
+                "SwiftMachO",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ]),
         .testTarget(
             name: "SwiftMachOMacrosTests",
             dependencies: [
                 "SwiftMachOMacros",
                 .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
             ],
-            path: "Tests/SwiftMachOMacrosTests"
+            path: "Tests/SwiftMachOMacrosTests",
+            linkerSettings: [
+                .linkedFramework("XCTest")
+            ]
         ),
-         .testTarget(
-             name: "SwiftMachoTests",
-             dependencies: ["SwiftMachO"],
-             path: "Tests/SwiftMachoTests"
-         ),
+        .testTarget(
+            name: "SwiftMachoTests",
+            dependencies: ["SwiftMachO"],
+            path: "Tests/SwiftMachoTests"
+        ),
     ]
 )

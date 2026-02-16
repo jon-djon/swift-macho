@@ -43,6 +43,28 @@ public struct CodeSignatureBlobWrapper: Parseable {
 }
 
 extension CodeSignatureBlobWrapper {
+    /// Reads the BER TLV header to determine the total encoded length (tag + length bytes + content),
+    /// so trailing padding can be stripped before parsing.
+    private static func berContentLength(_ bytes: [UInt8]) -> Int? {
+        guard bytes.count >= 2 else { return nil }
+        // bytes[0] is the tag; bytes[1] starts the length encoding
+        let lengthByte = bytes[1]
+        let contentLength: Int
+        let headerSize: Int
+        if lengthByte & 0x80 == 0 {
+            // Short form: length is directly encoded in bits 0–6
+            contentLength = Int(lengthByte)
+            headerSize = 2
+        } else {
+            // Long form: low 7 bits indicate how many subsequent bytes encode the length
+            let numLengthBytes = Int(lengthByte & 0x7F)
+            guard numLengthBytes > 0, bytes.count >= 2 + numLengthBytes else { return nil }
+            contentLength = bytes[2..<(2 + numLengthBytes)].reduce(0) { ($0 << 8) | Int($1) }
+            headerSize = 2 + numLengthBytes
+        }
+        return headerSize + contentLength
+    }
+    
     public init(parsing input: inout ParserSpan) throws {
         let start = input.startPosition
         self.magic = try CodeSignatureBlobMagic(parsing: &input, endianness: .big)
@@ -53,27 +75,19 @@ extension CodeSignatureBlobWrapper {
         self.cmsDataRange = input.startPosition..<input.startPosition+Int(self.length)-8
         self.range = start..<start+Int(self.length)
         
-        // This may fail because there is often padding bytes in the signature that need to be removed.
-        // Not exactly sure how to determine how much padding needs to be removed?
-        var data = try Data(parsing: &input, byteCount: Int(self.length))
+        let rawData = try Data(parsing: &input, byteCount: Int(self.length) - 8)
         
-        var cms: CMSSignature? = nil
-        let maxAttempts = 16
-        for attempt in 1...maxAttempts {
-            print("CMS attempt \(attempt)")
-            if let rootNode = try? BER.parse([UInt8](data)) {
-                cms = try? CMSSignature(berEncoded: rootNode, withIdentifier: .sequence)
-                break
-            }
-            data.removeLast()
+        // BER encodes the exact content length in the tag-length-value header.
+        // Read it to trim any trailing padding before parsing.
+        let cmsBytes = [UInt8](rawData)
+        let berContentLength = CodeSignatureBlobWrapper.berContentLength(cmsBytes)
+        let trimmedBytes = berContentLength.map { Array(cmsBytes.prefix($0)) } ?? cmsBytes
+        
+        if let rootNode = try? BER.parse(trimmedBytes) {
+            self.cms = try? CMSSignature(berEncoded: rootNode, withIdentifier: .sequence)
+        } else {
+            self.cms = nil
         }
-        self.cms = cms
-        
-//        if let rootNode = try? BER.parse([UInt8](data)) {
-//            self.cms = try? CMSSignature(berEncoded: rootNode, withIdentifier: .sequence)
-//        } else {
-//            self.cms = nil
-//        }
     }
 }
 

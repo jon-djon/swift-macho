@@ -15,8 +15,8 @@ public struct Symbol: Parseable {
     public let n_strx: UInt32 // index into the string table
     public let n_type: SymbolType
     public let n_sect: UInt8  // If type does not have N_SECT, then this defines the section number
-    public let n_desc: DEBUGGER_SYMBOL
-    // public let n_desc: UInt16
+    // public let n_desc: DEBUGGER_SYMBOL
+    public let n_desc: UInt16
     public let n_val: NVAL  // This is UInt32 for 32 bit binaries
     
     public let range: Range<Int>
@@ -112,14 +112,14 @@ extension Symbol {
         self.n_type = try SymbolType(parsing: &input)
         self.n_sect = try UInt8(parsing: &input)
         
-//        self.n_desc = try UInt16(parsing: &input, endianness: endianness)
-//        if let sym = try DEBUGGER_SYMBOL(rawValue: self.n_desc) {
-//            print(sym.description)
-//        } else {
-//            print("Unknown value: \(self.n_desc.description)")
-//        }
+        self.n_desc = try UInt16(parsing: &input, endianness: endianness)
+        if let sym = try DEBUGGER_SYMBOL(rawValue: self.n_desc) {
+            print(sym.description)
+        } else {
+            print("Unknown value: \(self.n_desc.description)")
+        }
         
-        self.n_desc = try DEBUGGER_SYMBOL(parsing: &input, endianness: endianness)
+//        self.n_desc = try DEBUGGER_SYMBOL(parsing: &input, endianness: endianness)
         if is64it {
             self.n_val = NVAL.bit64(try UInt64(parsing: &input, endianness: endianness))
         } else {
