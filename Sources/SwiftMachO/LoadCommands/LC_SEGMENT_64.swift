@@ -79,7 +79,7 @@ public struct Section64: Parseable {
 
         @AutoOptionSet
         public struct SectionAttributes: OptionSet, Sendable {
-            public static let PURE_INSTRUCTIONS = SectionAttributes(rawValue: 0x0000_0000)
+            // public static let PURE_INSTRUCTIONS = SectionAttributes(rawValue: 0x0000_0000)
             public static let UNKNOWN = SectionAttributes(rawValue: 0x0000_00001)
         }
 

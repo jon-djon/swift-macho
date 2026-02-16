@@ -357,6 +357,7 @@ extension CodeSignatureCodeDirectory {
         try input.seek(toAbsoluteOffset: start+Int(self.identOffset))
         self.identifier = try String(parsingNulTerminated: &input)
         
+        
         if let scatterOffset = self.scatterOffset,
            scatterOffset != 0 {
             // TODO: Need to figure out if this offset if from the start of the macho????
