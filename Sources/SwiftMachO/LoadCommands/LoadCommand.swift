@@ -99,10 +99,10 @@ public enum LoadCommandValue {
     case LC_RPATH(LC_RPATH)
     case LC_CODE_SIGNATURE(LC_CODE_SIGNATURE, CodeSignatureSuperBlob)
     // case LC_SEGMENT_SPLIT_INFO(LC_SEGMENT_SPLIT_INFO, SplitSegInfo)
-    case LC_SEGMENT_SPLIT_INFO(LC_SEGMENT_SPLIT_INFO)
+    case LC_SEGMENT_SPLIT_INFO(LC_SEGMENT_SPLIT_INFO, LinkEditRaw)
     case LC_REEXPORT_DYLIB(LC_REEXPORT_DYLIB)
     case LC_LAZY_LOAD_DYLIB(LC_LAZY_LOAD_DYLIB)
-    case LC_ENCRYPTION_INFO(LC_ENCRYPTION_INFO)
+    case LC_ENCRYPTION_INFO(LC_ENCRYPTION_INFO, LinkEditRaw)
     case LC_DYLD_INFO(LC_DYLD_INFO)
     case LC_DYLD_INFO_ONLY(LC_DYLD_INFO_ONLY)
     case LC_LOAD_UPWARD_DYLIB(LC_LOAD_UPWARD_DYLIB)
@@ -113,20 +113,20 @@ public enum LoadCommandValue {
     case LC_MAIN(LC_MAIN)
     case LC_DATA_IN_CODE(LC_DATA_IN_CODE, [DataInCode])
     case LC_SOURCE_VERSION(LC_SOURCE_VERSION)
-    case LC_DYLIB_CODE_SIGN_DRS(LC_DYLIB_CODE_SIGN_DRS)
-    case LC_ENCRYPTION_INFO_64(LC_ENCRYPTION_INFO_64)
+    case LC_DYLIB_CODE_SIGN_DRS(LC_DYLIB_CODE_SIGN_DRS, LinkEditRaw)
+    case LC_ENCRYPTION_INFO_64(LC_ENCRYPTION_INFO_64, LinkEditRaw)
     case LC_LINKER_OPTION(LC_LINKER_OPTION)
     case LC_LINKER_OPTIMIZATION_HINT(LC_LINKER_OPTIMIZATION_HINT, LinkEditRaw)
     case LC_VERSION_MIN_TVOS(LC_VERSION_MIN_TVOS)
     case LC_VERSION_MIN_WATCHOS(LC_VERSION_MIN_WATCHOS)
     case LC_NOTE(LC_NOTE)
     case LC_BUILD_VERSION(LC_BUILD_VERSION)
-    case LC_DYLD_EXPORTS_TRIE(LC_DYLD_EXPORTS_TRIE)
+    case LC_DYLD_EXPORTS_TRIE(LC_DYLD_EXPORTS_TRIE, LinkEditRaw)
     case LC_DYLD_CHAINED_FIXUPS(LC_DYLD_CHAINED_FIXUPS, ChainedFixupsData)
     case LC_FILESET_ENTRY(LC_FILESET_ENTRY)
-    case LC_ATOM_INFO(LC_ATOM_INFO)
+    case LC_ATOM_INFO(LC_ATOM_INFO, LinkEditRaw)
     case LC_FUNCTION_VARIANTS(LC_FUNCTION_VARIANTS)
-    case LC_FUNCTION_VARIANT_FIXUPS(LC_FUNCTION_VARIANT_FIXUPS)
+    case LC_FUNCTION_VARIANT_FIXUPS(LC_FUNCTION_VARIANT_FIXUPS, LinkEditRaw)
     case LC_TARGET_TRIPLE(LC_TARGET_TRIPLE)
 }
 
@@ -140,8 +140,8 @@ extension LoadCommandValue {
         case .LC_LOAD_WEAK_DYLIB(let cmd): cmd
         case .LC_DYLD_ENVIRONMENT(let cmd): cmd
         case .LC_DYLD_INFO_ONLY(let cmd): cmd
-        case .LC_ENCRYPTION_INFO(let cmd): cmd
-        case .LC_ENCRYPTION_INFO_64(let cmd): cmd
+        case .LC_ENCRYPTION_INFO(let cmd, _): cmd
+        case .LC_ENCRYPTION_INFO_64(let cmd, _): cmd
         case .LC_SEGMENT(let cmd): cmd
         case .LC_SYMTAB(let cmd, _, _): cmd
         case .LC_SYMSEG(let cmd): cmd
@@ -166,8 +166,7 @@ extension LoadCommandValue {
         case .LC_SEGMENT_64(let cmd): cmd
         case .LC_ROUTINES_64(let cmd): cmd
         case .LC_RPATH(let cmd): cmd
-        // case .LC_SEGMENT_SPLIT_INFO(let cmd, _): cmd
-        case .LC_SEGMENT_SPLIT_INFO(let cmd): cmd
+        case .LC_SEGMENT_SPLIT_INFO(let cmd, _): cmd
         case .LC_REEXPORT_DYLIB(let cmd): cmd
         case .LC_LAZY_LOAD_DYLIB(let cmd): cmd
         case .LC_DYLD_INFO(let cmd): cmd
@@ -178,18 +177,18 @@ extension LoadCommandValue {
         case .LC_MAIN(let cmd): cmd
         case .LC_DATA_IN_CODE(let cmd, _): cmd
         case .LC_SOURCE_VERSION(let cmd): cmd
-        case .LC_DYLIB_CODE_SIGN_DRS(let cmd): cmd
+        case .LC_DYLIB_CODE_SIGN_DRS(let cmd, _): cmd
         case .LC_LINKER_OPTION(let cmd): cmd
         case .LC_LINKER_OPTIMIZATION_HINT(let cmd, _): cmd
         case .LC_VERSION_MIN_TVOS(let cmd): cmd
         case .LC_VERSION_MIN_WATCHOS(let cmd): cmd
         case .LC_NOTE(let cmd): cmd
         case .LC_BUILD_VERSION(let cmd): cmd
-        case .LC_DYLD_EXPORTS_TRIE(let cmd): cmd
+        case .LC_DYLD_EXPORTS_TRIE(let cmd, _): cmd
         case .LC_FILESET_ENTRY(let cmd): cmd
-        case .LC_ATOM_INFO(let cmd): cmd
+        case .LC_ATOM_INFO(let cmd, _): cmd
         case .LC_FUNCTION_VARIANTS(let cmd): cmd
-        case .LC_FUNCTION_VARIANT_FIXUPS(let cmd): cmd
+        case .LC_FUNCTION_VARIANT_FIXUPS(let cmd, _): cmd
         case .LC_TARGET_TRIPLE(let cmd): cmd
         }
     }
@@ -233,7 +232,14 @@ extension LoadCommandValue: Displayable {
         case .LC_CODE_SIGNATURE(_, let signature): [signature]
         case .LC_FUNCTION_STARTS(_, _): []
         case .LC_LINKER_OPTIMIZATION_HINT(_, let le): [le]
+        case .LC_FUNCTION_VARIANT_FIXUPS(_, let le): [le]
         case .LC_DYLD_CHAINED_FIXUPS(_, let data): [data]
+        case .LC_DYLIB_CODE_SIGN_DRS(_, let le): [le]
+        case .LC_ATOM_INFO(_, let le): [le]
+        case .LC_SEGMENT_SPLIT_INFO(_, let le): [le]
+        case .LC_ENCRYPTION_INFO_64(_, let le): [le]
+        case .LC_ENCRYPTION_INFO(_, let le): [le]
+        case .LC_DYLD_EXPORTS_TRIE(_, let le): [le]
         //        case .LC_SEGMENT_SPLIT_INFO(_, let info): [info]
         // case .LC_DATA_IN_CODE(_, let codes): []
         //        case .LC_DYLIB_CODE_SIGN_DRS(_, let le): [le]
