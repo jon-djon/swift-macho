@@ -80,7 +80,7 @@ public enum LoadCommandValue {
     case LC_IDENT(LC_IDENT)
     case LC_FVMFILE(LC_FVMFILE)
     case LC_PREPAGE(LC_PREPAGE)
-    case LC_DYSYMTAB(LC_DYSYMTAB)
+    case LC_DYSYMTAB(LC_DYSYMTAB, [IndirectSymbol])
     case LC_LOAD_DYLIB(LC_LOAD_DYLIB)
     case LC_LOAD_DYLINKER(LC_LOAD_DYLINKER)
     case LC_ID_DYLINKER(LC_ID_DYLINKER)
@@ -152,7 +152,7 @@ extension LoadCommandValue {
         case .LC_IDENT(let cmd): cmd
         case .LC_FVMFILE(let cmd): cmd
         case .LC_PREPAGE(let cmd): cmd
-        case .LC_DYSYMTAB(let cmd): cmd
+        case .LC_DYSYMTAB(let cmd, _): cmd
         case .LC_LOAD_DYLINKER(let cmd): cmd
         case .LC_ID_DYLINKER(let cmd): cmd
         case .LC_PREBOUND_DYLIB(let cmd): cmd
@@ -206,7 +206,8 @@ extension LoadCommandValue: Displayable {
                     label: "Symbols", stringValue: "\(symbols.count) Symbols", offset: 0, size: 0,
                     children: symbols.enumerated().map { index, symbol in
                         .init(
-                            label: "Symbol", stringValue: strings[index], offset: 0, size: 0,
+                            label: "Symbol", stringValue: strings[index], offset: 0,
+                            size: symbol.size,
                             children: symbol.fields, obj: symbol)
                     }, obj: self)
             ]
@@ -222,6 +223,22 @@ extension LoadCommandValue: Displayable {
                             size: 0, children: code.fields, obj: code)
                     }, obj: self)
             ]
+        case .LC_DYSYMTAB(let cmd, let indirectSymbols):
+            if indirectSymbols.isEmpty {
+                cmd.fields
+            } else {
+                cmd.fields + [
+                    .init(
+                        label: "Indirect Symbols",
+                        stringValue: "\(indirectSymbols.count) entries",
+                        offset: 0, size: 0,
+                        children: indirectSymbols.enumerated().map { index, sym in
+                            .init(
+                                label: "[\(index)]", stringValue: sym.description,
+                                offset: 0, size: 4, children: nil, obj: sym)
+                        }, obj: self)
+                ]
+            }
 
         default: command.fields
         }
@@ -244,6 +261,8 @@ extension LoadCommandValue: Displayable {
         // case .LC_DATA_IN_CODE(_, let codes): []
         //        case .LC_DYLIB_CODE_SIGN_DRS(_, let le): [le]
         //        case .LC_DYLD_EXPORTS_TRIE(_, let le): [le]
+        case .LC_SYMTAB(_, _, _): []
+        case .LC_DYSYMTAB(_, _): []
         default: command.children
         }
     }

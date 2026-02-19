@@ -50,7 +50,6 @@ struct LC_SYMTAB_Tests {
             #expect(f.numSymbols == 10)
             #expect(f.stringTableOffset == 0x2000)
             #expect(f.stringTableSize == 0x100)
-            #expect(f.symbolTableSize == 160) // 10 symbols * 16 bytes each
             #expect(span.count == 0)
         }
     }
@@ -65,7 +64,6 @@ struct LC_SYMTAB_Tests {
             #expect(f.numSymbols == 0)
             #expect(f.stringTableOffset == 0)
             #expect(f.stringTableSize == 0)
-            #expect(f.symbolTableSize == 0)
             #expect(span.count == 0)
         }
     }

@@ -179,7 +179,6 @@ extension MachO: ExpressibleByParsing {
         // Second pass to fill in deferred parsing items
         var loadCommands: [LoadCommandValue] = []
         for loadCommand in cmds {
-            print(loadCommand.header.id.description)
             switch loadCommand.header.id {
             case .LC_CODE_SIGNATURE:
                 guard let cmd = loadCommand as? LC_CODE_SIGNATURE else {
@@ -252,7 +251,12 @@ extension MachO: ExpressibleByParsing {
 
                 try input.seek(toRange: machORange)
                 try input.seek(toRelativeOffset: cmd.symbolTableOffset)
-                var span = try input.sliceSpan(byteCount: Int(cmd.symbolTableSize))
+                var span = try input.sliceSpan(
+                    byteCount: (is64Bit ? Symbol.size64 : Symbol.size32) * Int(cmd.numSymbols))
+
+                // let symbolTable = try SymbolTable(
+                //     parsing: &span, endianness: endianness, numSymbols: Int(cmd.numSymbols),
+                //     is64Bit: is64Bit)
 
                 let symbols: [Symbol] = try Array(parsing: &span, count: Int(cmd.numSymbols)) {
                     input in
@@ -295,7 +299,22 @@ extension MachO: ExpressibleByParsing {
                 loadCommands.append(LoadCommandValue.LC_PREPAGE(cmd))
             case .LC_DYSYMTAB:
                 guard let cmd = loadCommand as? LC_DYSYMTAB else { throw MachOError.unknownError }
-                loadCommands.append(LoadCommandValue.LC_DYSYMTAB(cmd))
+
+                let indirectSymbols: [IndirectSymbol]
+                if cmd.numIndirectSymbols > 0 {
+                    try input.seek(toRange: machORange)
+                    try input.seek(toRelativeOffset: cmd.indirectSymbolOffset)
+                    var span = try input.sliceSpan(byteCount: 4 * Int(cmd.numIndirectSymbols))
+                    indirectSymbols = try Array(parsing: &span, count: Int(cmd.numIndirectSymbols)) {
+                        input in
+                        var entrySpan = try input.sliceSpan(byteCount: 4)
+                        return try IndirectSymbol(parsing: &entrySpan, endianness: endianness)
+                    }
+                } else {
+                    indirectSymbols = []
+                }
+
+                loadCommands.append(LoadCommandValue.LC_DYSYMTAB(cmd, indirectSymbols))
             case .LC_LOAD_DYLINKER:
                 guard let cmd = loadCommand as? LC_LOAD_DYLINKER else {
                     throw MachOError.unknownError
@@ -360,7 +379,9 @@ extension MachO: ExpressibleByParsing {
                 try input.seek(toRange: machORange)
                 try input.seek(toRelativeOffset: cmd.offset)
                 var span = try input.sliceSpan(byteCount: Int(cmd.size))
-                loadCommands.append(LoadCommandValue.LC_SEGMENT_SPLIT_INFO(cmd, try LinkEditRaw(parsing: &span, endianness: endianness)))
+                loadCommands.append(
+                    LoadCommandValue.LC_SEGMENT_SPLIT_INFO(
+                        cmd, try LinkEditRaw(parsing: &span, endianness: endianness)))
             case .LC_REEXPORT_DYLIB:
                 guard let cmd = loadCommand as? LC_REEXPORT_DYLIB else {
                     throw MachOError.unknownError

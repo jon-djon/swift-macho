@@ -65,9 +65,6 @@ struct ParseMachO: ParsableCommand {
     // The main logic is now in the `run()` method.
     func run() throws {
         // let path = "/Applications/Bear.app/Contents/MacOS/Bear"
-        let path =
-            "/Users/jon/Library/Application Support/discord/WidevineCdm/4.10.2891.0/_platform_specific/mac_arm64/libwidevinecdm.dylib"
-
         guard MachOFile.isMachoFile(URL(fileURLWithPath: filePath)) else {
             print("Could not parse Mach-O at \(filePath)")
             return

@@ -17,10 +17,6 @@ public struct LC_SYMTAB: LoadCommand {
     public let stringTableSize: UInt32
 
     public let range: Range<Int>
-
-    public var symbolTableSize: Int {
-        Int(numSymbols) * 16
-    }
 }
 
 extension LC_SYMTAB {
