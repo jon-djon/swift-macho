@@ -70,12 +70,14 @@ struct ParseMachO: ParsableCommand {
             return
         }
 
-        guard let file = try? MachOFile(URL(fileURLWithPath: filePath)) else {
-            print("Could not parse Mach-O at \(filePath)")
-            return
+        do {
+            let file = try MachOFile(URL(fileURLWithPath: filePath))
+            TreePrinter.printTree(file)
+        } catch let e as LoadCommandParsingError {
+            print("Parse error: \(e)")
+        } catch {
+            print("Could not parse Mach-O at \(filePath): \(error)")
         }
-
-        TreePrinter.printTree(file)
     }
 }
 
