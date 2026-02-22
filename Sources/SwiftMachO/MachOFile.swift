@@ -165,7 +165,7 @@ extension MachOFile {
             case .CodeDirectory(_, let d) = value
         else { throw MachOError.invalidSignature }
 
-        let c_hash = getHash(d.range, type: cd.hashType)
+        let _ = getHash(d.range, type: cd.hashType)
         // TODO: Need to parse out the CMS signature (CodeSignatureBlobWrapper) to pull out the cdhash from the SignedData
         // guard hash.hash == c_hash else { throw MachOError.invalidSignature }
 

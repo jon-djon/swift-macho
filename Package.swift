@@ -14,6 +14,12 @@ let package: Package = Package(
         .executable(
             name: "macho",
             targets: ["macho"]),
+        .executable(
+            name: "runall",
+            targets: ["runall"]),
+        .executable(
+            name: "findall",
+            targets: ["findall"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-asn1.git", from: "1.3.2"),
@@ -43,6 +49,18 @@ let package: Package = Package(
         ),
         .executableTarget(
             name: "macho",
+            dependencies: [
+                "SwiftMachO",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ]),
+        .executableTarget(
+            name: "runall",
+            dependencies: [
+                "SwiftMachO",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ]),
+        .executableTarget(
+            name: "findall",
             dependencies: [
                 "SwiftMachO",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
