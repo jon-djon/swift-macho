@@ -1,7 +1,7 @@
 import BinaryParsing
 import Foundation
 
-public class MachOFile {
+public struct MachOFile {
     public let id: UUID = UUID()
     public let url: URL
     public let data: Data
@@ -63,7 +63,6 @@ public class MachOFile {
     public init(_ url: URL) throws {
         self.url = url
         self.data = try Data(contentsOf: url, options: .mappedIfSafe)
-        // self.data = try Data(contentsOf: url)
         self.range = 0..<self.data.count
 
         let magic = try self.data.withParserSpan { input in
