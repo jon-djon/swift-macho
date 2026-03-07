@@ -1,78 +1,33 @@
 import ArgumentParser
 import Foundation
+import MachOFormatters
 import SwiftMachO
-import X509
-
-// MARK: - Tree Printer
-class TreePrinter {
-    // Configuration for tree drawing characters
-    struct TreeChars {
-        static let branch = "├── "
-        static let lastBranch = "└── "
-        static let vertical = "│   "
-        static let space = "    "
-    }
-
-    // Print the entire tree starting from root
-    static func printTree(_ node: Displayable, title: String = "Root") {
-        print(title)
-        printNode(node, prefix: "", isLast: true)
-    }
-
-    // Recursive function to print each node
-    private static func printNode(_ node: Displayable, prefix: String, isLast: Bool) {
-
-        for (index, field) in node.fields.enumerated() {
-            let isLastField = index == node.fields.count - 1 && (node.children?.isEmpty ?? true)
-            let connector = isLastField && isLast ? TreeChars.lastBranch : TreeChars.branch
-            let label = field.label.padding(toLength: 20, withPad: " ", startingAt: 0)
-            let value = field.stringValue.padding(toLength: 20, withPad: " ", startingAt: 0)
-            print("\(prefix)\(connector)\(label)Value: \(value)")
-            //           print("\(prefix)\(connector)\(label)Offset: \(range.hexDescription) M Offset: \(mOffset.hexDescription) Value: \(value) Data: \(file.data.hexString(in: range))")
-            // print("\(prefix)\(connector)\(key): \(value)")
-        }
-
-        // Print children
-        if let children = node.children, !children.isEmpty {
-            for (index, child) in children.enumerated() {
-                let isLastChild = index == children.count - 1
-                let childPrefix = prefix + (isLast ? TreeChars.space : TreeChars.vertical)
-
-                // Print child indicator
-                let connector = isLastChild ? TreeChars.lastBranch : TreeChars.branch
-                print("\(prefix)\(connector)[\(child.title)]")
-
-                // Recursively print child node
-                let grandchildPrefix = childPrefix
-                printNode(child, prefix: grandchildPrefix, isLast: isLastChild)
-            }
-        }
-    }
-}
-
-// --- Command-Line Tool Definition ---
 
 struct ParseMachO: ParsableCommand {
-    // Customize the help message and description for the tool.
     static let configuration = CommandConfiguration(
-        abstract: "Checks if a file is a valid Mach-O executable by inspecting its magic number."
+        abstract: "Parse and display a Mach-O binary."
     )
 
-    // Define the file path as a required command-line argument.
-    @Argument(help: "The path to the file to check.")
+    @Argument(help: "Path to the Mach-O binary.")
     var filePath: String
 
-    // The main logic is now in the `run()` method.
+    @Option(name: .shortAndLong, help: "Output format: tree, json, yaml (default: tree).")
+    var format: String = "tree"
+
     func run() throws {
-        // let path = "/Applications/Bear.app/Contents/MacOS/Bear"
+        guard let outputFormat = OutputFormat(rawValue: format) else {
+            throw ValidationError("Unknown format '\(format)'. Valid options: tree, json, yaml")
+        }
+
         guard MachOFile.isMachoFile(URL(fileURLWithPath: filePath)) else {
-            print("Could not parse Mach-O at \(filePath)")
+            print("Not a Mach-O file: \(filePath)")
             return
         }
 
         do {
             let file = try MachOFile(URL(fileURLWithPath: filePath))
-            TreePrinter.printTree(file)
+            let formatter = outputFormat.makeFormatter()
+            print(formatter.render(file))
         } catch let e as LoadCommandParsingError {
             print("Parse error: \(e)")
         } catch {
@@ -81,6 +36,4 @@ struct ParseMachO: ParsableCommand {
     }
 }
 
-// --- Entry Point ---
-// This starts the command-line tool and handles parsing the arguments.
 ParseMachO.main()

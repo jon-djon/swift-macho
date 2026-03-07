@@ -38,7 +38,8 @@ extension FatArchive: Displayable {
                         children: nil, obj: self),
                 ], obj: self),
             .init(
-                label: "Offset", stringValue: offset.description, offset: 8, size: 4, children: nil,
+                label: "Offset", stringValue: offset.hexDescription, offset: 8, size: 4,
+                children: nil,
                 obj: self),
             .init(
                 label: "Size", stringValue: size.description, offset: 12, size: 4, children: nil,

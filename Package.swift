@@ -11,6 +11,9 @@ let package: Package = Package(
         .library(
             name: "SwiftMachO",
             targets: ["SwiftMachO"]),
+        .library(
+            name: "MachOFormatters",
+            targets: ["MachOFormatters"]),
         .executable(
             name: "macho",
             targets: ["macho"]),
@@ -47,10 +50,16 @@ let package: Package = Package(
             ],
             path: "Sources/SwiftMachO"
         ),
+        .target(
+            name: "MachOFormatters",
+            dependencies: ["SwiftMachO"],
+            path: "Sources/MachOFormatters"
+        ),
         .executableTarget(
             name: "macho",
             dependencies: [
                 "SwiftMachO",
+                "MachOFormatters",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ]),
         .executableTarget(
