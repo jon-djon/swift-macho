@@ -12,7 +12,7 @@ public struct SemanticVersion: Parseable, CustomStringConvertible {
     
     public let range: Range<Int>
 
-    public static let mask: UInt32 = 0b1111
+    public static let mask: UInt32 = 0xFF
     
     public var description: String {
         return "\(major).\(minor).\(patch)"
