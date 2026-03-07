@@ -463,11 +463,11 @@ extension CodeSignatureCodeDirectory: Displayable {
         }
         
         if let linkageHeader = self.linkageHeader {
-            fields.append(.init(label: "RuntimeHeader.Version", stringValue: linkageHeader.hashType.description, offset: 84, size: 1, children: nil, obj: self))
-            fields.append(.init(label: "RuntimeHeader.Pre Encryption Offset", stringValue: linkageHeader.applicationType.description, offset: 85, size: 1, children: nil, obj: self))
-            fields.append(.init(label: "RuntimeHeader.Version", stringValue: linkageHeader.applicationSubType.description, offset: 86, size: 2, children: nil, obj: self))
-            fields.append(.init(label: "RuntimeHeader.Pre Encryption Offset", stringValue: linkageHeader.offset.description, offset: 88, size: 4, children: nil, obj: self))
-            fields.append(.init(label: "RuntimeHeader.Pre Encryption Offset", stringValue: linkageHeader.size.description, offset: 92, size: 4, children: nil, obj: self))
+            fields.append(.init(label: "LinkageHeader.Hash Type", stringValue: linkageHeader.hashType.description, offset: 84, size: 1, children: nil, obj: self))
+            fields.append(.init(label: "LinkageHeader.Application Type", stringValue: linkageHeader.applicationType.description, offset: 85, size: 1, children: nil, obj: self))
+            fields.append(.init(label: "LinkageHeader.Application Sub Type", stringValue: linkageHeader.applicationSubType.description, offset: 86, size: 2, children: nil, obj: self))
+            fields.append(.init(label: "LinkageHeader.Offset", stringValue: linkageHeader.offset.description, offset: 88, size: 4, children: nil, obj: self))
+            fields.append(.init(label: "LinkageHeader.Size", stringValue: linkageHeader.size.description, offset: 92, size: 4, children: nil, obj: self))
         }
         
         fields.append(.init(label: "Identifier", stringValue: identifier, offset: Int(identOffset), size: 4, children: nil, obj: self))

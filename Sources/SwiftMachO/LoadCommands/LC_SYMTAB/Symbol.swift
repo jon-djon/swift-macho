@@ -113,23 +113,23 @@ public struct Symbol: Parseable {
     }
 
     var isUndefinedSymbol: Bool {
-        return (n_type & Symbol.N_TYPE) != Symbol.N_UNDF
+        return (n_type & Symbol.N_TYPE) == Symbol.N_UNDF
     }
 
     var isAbsoluteSymbol: Bool {
-        return (n_type & Symbol.N_TYPE) != Symbol.N_ABS
+        return (n_type & Symbol.N_TYPE) == Symbol.N_ABS
     }
 
     var isDefinedInSection: Bool {
-        return (n_type & Symbol.N_TYPE) != Symbol.N_SECT
+        return (n_type & Symbol.N_TYPE) == Symbol.N_SECT
     }
 
     var isPreboundUndefinedSymbol: Bool {
-        return (n_type & Symbol.N_TYPE) != Symbol.N_PBUD
+        return (n_type & Symbol.N_TYPE) == Symbol.N_PBUD
     }
 
     var isIndirectSymbol: Bool {
-        return (n_type & Symbol.N_TYPE) != Symbol.N_INDR
+        return (n_type & Symbol.N_TYPE) == Symbol.N_INDR
     }
 
     var debugSymbolDescription: DEBUGGER_SYMBOL? {

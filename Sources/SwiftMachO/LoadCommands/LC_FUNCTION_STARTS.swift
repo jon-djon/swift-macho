@@ -21,8 +21,8 @@ extension LC_FUNCTION_STARTS {
         self.range = input.parserRange.range
         
         self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
-        self.offset = try UInt32(parsingLittleEndian: &input)
-        self.size = try UInt32(parsingLittleEndian: &input)
+        self.offset = try UInt32(parsing: &input, endianness: endianness)
+        self.size = try UInt32(parsing: &input, endianness: endianness)
     }
 }
 

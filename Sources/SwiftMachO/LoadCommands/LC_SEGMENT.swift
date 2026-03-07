@@ -133,7 +133,7 @@ extension Section32: Displayable {
           .init(label: "Size", stringValue: size.description, offset: 36, size: 4, children: nil, obj: self),
           .init(label: "Offset", stringValue: offset.description, offset: 40, size: 4, children: nil, obj: self),
           .init(label: "Alignment", stringValue: alignment.description, offset: 44, size: 4, children: nil, obj: self),
-          .init(label: "Relocations Offset", stringValue: sectionName, offset: 48, size: 4, children: nil, obj: self),
+          .init(label: "Relocations Offset", stringValue: relocOffset.description, offset: 48, size: 4, children: nil, obj: self),
           .init(label: "Number of Relocations", stringValue: nRelocs.description, offset: 52, size: 4, children: nil, obj: self),
           .init(label: "Flags", stringValue: flags.description, offset: 56, size: 4, children: nil, obj: self),
           .init(label: "Reserved 1", stringValue: reserved1.description, offset: 60, size: 4, children: nil, obj: self),

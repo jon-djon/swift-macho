@@ -19,7 +19,6 @@ extension SymbolTable {
             input in
             var symbolSpan = try input.sliceSpan(
                 byteCount: is64Bit ? Symbol.size64 : Symbol.size32)
-            print(symbolSpan.startPosition)
             return try Symbol(parsing: &symbolSpan, endianness: endianness, is64it: is64Bit)
         }
     }
