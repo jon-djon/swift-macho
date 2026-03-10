@@ -2,7 +2,7 @@ import BinaryParsing
 import Foundation
 
 public struct MachO: Parseable {
-    public let magic: Magic
+    public let magic: BinaryMagic
     public let header: MachOHeader
     public let loadCommands: [LoadCommandValue]
 
@@ -11,32 +11,6 @@ public struct MachO: Parseable {
 
     public var rawCommands: [LoadCommand] {
         loadCommands.map { $0.command }
-    }
-
-    @CaseName
-    public enum Magic: UInt32 {
-        case macho32 = 0xfeed_face
-        case macho64 = 0xfeed_facf
-        case macho32Swapped = 0xcefa_edfe
-        case macho64Swapped = 0xcffa_edfe
-
-        public var is64Bit: Bool {
-            switch self {
-            case .macho64, .macho64Swapped: true
-            default: false
-            }
-        }
-
-        public var endian: Endianness {
-            switch self {
-            case .macho32Swapped, .macho64Swapped: .little
-            default: .big
-            }
-        }
-
-        public var headerSize: Int {
-            is64Bit ? 28 : 24
-        }
     }
 }
 
@@ -260,7 +234,8 @@ extension MachO: ExpressibleByParsing {
         self.range = input.parserRange.range
 
         guard
-            let magic = try? Magic(parsing: &input, endianness: .big)
+            let magic = try? BinaryMagic(parsing: &input, endianness: .big),
+            !magic.isFat
         else { throw MachOError.unsupportedMachO("MachO") }
         self.magic = magic
         var span = try input.sliceSpan(byteCount: self.magic.headerSize)
@@ -462,9 +437,9 @@ extension MachO {
 
     public static func isMachO(data: Data) -> Bool {
         let magic = data.withParserSpan { input in
-            return try? Magic(parsing: &input, endianness: .little)
+            return try? BinaryMagic(parsing: &input, endianness: .little)
         }
-        return magic != nil
+        return magic?.isFat == false
     }
 
     public func getLoadCommandByType(_ type: LoadCommandHeader.ID) -> LoadCommand? {

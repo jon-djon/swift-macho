@@ -17,20 +17,12 @@ public enum FatBinaryError: Error, CustomStringConvertible {
 }
 
 public struct FatBinary: Parseable {
-    public let magic: FatBinary.Magic
+    public let magic: BinaryMagic
     public let nfatArch: UInt32
     public let architectures: [FatArchive]
     public let machos: [MachO]
-    
-    public var range: Range<Int>
 
-    @CaseName
-    public enum Magic: UInt32, CustomStringConvertible {
-        case Fat = 0xcafebabe
-        case Fat64 = 0xcafebabf
-        case FatSwapped = 0xbebafeca
-        case Fat64Swapped = 0xbfbafeca
-    }
+    public var range: Range<Int>
 }
 
 extension FatBinary: ExpressibleByParsing {
@@ -38,7 +30,7 @@ extension FatBinary: ExpressibleByParsing {
     public init(parsing input: inout ParserSpan) throws {
         let start = input.startPosition
         
-        self.magic = try FatBinary.Magic(parsing: &input, endianness: .big)
+        self.magic = try BinaryMagic(parsing: &input, endianness: .big)
         self.nfatArch = try UInt32(parsing: &input, endianness: .big)
         self.architectures = try Array(parsing: &input, count: Int(self.nfatArch)) { input in
             try FatArchive(parsing: &input)
@@ -63,8 +55,8 @@ extension FatBinary {
     private static func archiveIsMachO(_ archive: FatArchive, using input: inout ParserSpan) -> Bool {
         do {
             try input.seek(toAbsoluteOffset: archive.offset)
-            _ = try MachO.Magic(parsing: &input, endianness: .big)
-            return true
+            let magic = try BinaryMagic(parsing: &input, endianness: .big)
+            return !magic.isFat
         } catch {
             return false
         }

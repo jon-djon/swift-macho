@@ -27,52 +27,18 @@ public struct MachOFile {
         }
     }
 
-    @CaseName
-    public enum Magic: UInt32 {
-        case fat = 0xCAFE_BABE
-        case fat64 = 0xCAFE_BABF
-        case fatSwapped = 0xBEBA_FECA
-        case fat64Swapped = 0xBFBA_FECA
-        case macho32 = 0xFEED_FACE
-        case macho64 = 0xFEED_FACF
-        case macho32Swapped = 0xCEFA_EDFE
-        case macho64Swapped = 0xCFFA_EDFE
-
-        public var isFat: Bool {
-            switch self {
-            case .fat, .fat64, .fatSwapped, .fat64Swapped: true
-            default: false
-            }
-        }
-
-        public var is64Bit: Bool {
-            switch self {
-            case .fat64, .macho64, .macho64Swapped, .fat64Swapped: true
-            default: false
-            }
-        }
-
-        public var isSwapped: Bool {
-            switch self {
-            case .macho32Swapped, .macho64Swapped, .fatSwapped, .fat64Swapped: true
-            default: false
-            }
-        }
-    }
-
     public init(_ url: URL) throws {
         self.url = url
         self.data = try Data(contentsOf: url, options: .mappedIfSafe)
         self.range = 0..<self.data.count
 
         let magic = try self.data.withParserSpan { input in
-            try Magic(parsing: &input, endianness: .little)
+            try BinaryMagic(parsing: &input, endianness: .little)
         }
 
-        switch magic {
-        case .fat, .fat64, .fatSwapped, .fat64Swapped:
+        if magic.isFat {
             self.file = BinaryType.fat(try FatBinary(parsing: data))
-        case .macho32, .macho64, .macho32Swapped, .macho64Swapped:
+        } else {
             self.file = BinaryType.macho(try MachO(parsing: data))
         }
     }
@@ -102,7 +68,7 @@ extension MachOFile {
         guard data.count == 8 else { return false }
 
         let magic = data.withParserSpan { input in
-            try? Magic(parsing: &input, endianness: .big)
+            try? BinaryMagic(parsing: &input, endianness: .big)
         }
 
         guard

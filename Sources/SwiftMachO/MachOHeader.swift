@@ -79,7 +79,7 @@ public struct MachOHeader: Parseable {
 }
 
 extension MachOHeader {
-    public init(parsing input: inout ParserSpan, magic: MachO.Magic) throws {
+    public init(parsing input: inout ParserSpan, magic: BinaryMagic) throws {
         let start = input.parserRange.lowerBound
         self.cpu = try CPU(parsing: &input, endianness: magic.endian)
         self.fileType = try FileType(parsing: &input, endianness: magic.endian)
