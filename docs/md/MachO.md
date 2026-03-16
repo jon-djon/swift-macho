@@ -1,0 +1,280 @@
+# MachO
+
+The **MachO** struct is the main entry point for parsing Mach-O binary files. It represents a single Mach-O binary within a file, which could be a standalone executable, a library, or one architecture slice within a universal (fat) binary.
+
+## Overview
+
+Mach-O (Mach Object) is the executable file format used by macOS, iOS, and other Apple operating systems. A Mach-O file consists of:
+
+1. **Magic number** - Identifies the file as Mach-O and specifies the architecture and byte order
+2. **Header** - Contains metadata about the binary (CPU type, file type, number of load commands, etc.)
+3. **Load commands** - Instructions for the dynamic linker and loader describing segments, dependencies, code signatures, etc.
+4. **Data** - The actual code, data, and resources referenced by the load commands
+
+## Structure
+
+```swift
+public struct MachO {
+    public let magic: Magic              // Magic number identifying format
+    public let header: MachOHeader       // Mach-O header with metadata
+    public let loadCommands: [LoadCommandValue]  // Parsed load commands
+    public let range: Range<Int>         // Byte range in source file
+}
+```
+
+### Magic Numbers
+
+The magic number determines the binary format:
+
+| Magic | Value | Description |
+|-------|-------|-------------|
+| `macho32` | `0xFEEDFACE` | 32-bit big-endian |
+| `macho64` | `0xFEEDFACF` | 64-bit big-endian |
+| `macho32Swapped` | `0xCEFAEDFE` | 32-bit little-endian |
+| `macho64Swapped` | `0xCFFAEDFE` | 64-bit little-endian |
+
+## MachO Header
+
+The Mach-O header immediately follows the magic number and contains essential metadata about the binary. The header size is 28 bytes for 64-bit binaries and 24 bytes for 32-bit binaries.
+
+### Header Fields
+
+| Field | Description | Offset (64-bit) | Offset (32-bit) | Size | Type |
+|-------|-------------|-----------------|-----------------|------|------|
+| CPU Type | Processor architecture type | 0 | 0 | 4 | `Int32` |
+| CPU Subtype | Specific processor variant | 4 | 4 | 4 | `Int32` |
+| File Type | Binary purpose (executable, library, etc.) | 8 | 8 | 4 | `UInt32` |
+| Number of Commands | Count of load commands that follow | 12 | 12 | 4 | `UInt32` |
+| Size of Commands | Total byte size of all load commands | 16 | 16 | 4 | `UInt32` |
+| Flags | Binary attributes and capabilities | 20 | 20 | 4 | `UInt32` |
+| Reserved | Reserved for future use (64-bit only) | 24 | - | 4 | `UInt32` |
+
+**Total size:** 28 bytes (64-bit) or 24 bytes (32-bit)
+
+### File Types
+
+The file type field indicates the binary's purpose:
+
+| Type | Value | Description |
+|------|-------|-------------|
+| `MH_OBJECT` | 0x1 | Relocatable object file (.o) |
+| `MH_EXECUTE` | 0x2 | Executable program |
+| `MH_FVMLIB` | 0x3 | Fixed VM shared library |
+| `MH_CORE` | 0x4 | Core dump file |
+| `MH_PRELOAD` | 0x5 | Preloaded executable |
+| `MH_DYLIB` | 0x6 | Dynamic library (.dylib) |
+| `MH_DYLINKER` | 0x7 | Dynamic linker (/usr/lib/dyld) |
+| `MH_BUNDLE` | 0x8 | Bundle/plugin (.bundle) |
+| `MH_DYLIB_STUB` | 0x9 | Stub library for static linking only |
+| `MH_DSYM` | 0xA | Debug symbols file (.dSYM) |
+| `MH_KEXT_BUNDLE` | 0xB | Kernel extension (.kext) |
+| `MH_FILESET` | 0xC | Fileset (e.g., kernel cache) |
+| `MH_GPU_EXECUTE` | 0xD | GPU executable |
+| `MH_GPU_DYLIB` | 0xE | GPU dynamic library |
+
+### Header Flags
+
+The flags field is a bitmask describing various binary attributes:
+
+| Flag | Value | Description |
+|------|-------|-------------|
+| `MH_NOUNDEFS` | 0x1 | No undefined references |
+| `MH_INCRLINK` | 0x2 | Output of incremental link |
+| `MH_DYLDLINK` | 0x4 | Input for dynamic linker |
+| `MH_BINDATLOAD` | 0x8 | Dynamic linker binds at load time |
+| `MH_PREBOUND` | 0x10 | Dynamic library is prebound |
+| `MH_SPLIT_SEGS` | 0x20 | Read-only and read-write segments split |
+| `MH_LAZY_INIT` | 0x40 | Shared library init routine run lazily |
+| `MH_TWOLEVEL` | 0x80 | Using two-level namespace bindings |
+| `MH_FORCE_FLAT` | 0x100 | Using flat namespace bindings |
+| `MH_NOMULTIDEFS` | 0x200 | No multiple definitions of symbols |
+| `MH_NOFIXPREBINDING` | 0x400 | Don't notify prebinding agent about this binary |
+| `MH_PREBINDABLE` | 0x800 | Binary is not prebound but can have its prebinding redone |
+| `MH_ALLMODSBOUND` | 0x1000 | All modules bound by the static linker |
+| `MH_SUBSECTIONS_VIA_SYMBOLS` | 0x2000 | Safe to divide sections into atoms |
+| `MH_CANONICAL` | 0x4000 | Binary is canonical (has no overlapping segments) |
+| `MH_WEAK_DEFINES` | 0x8000 | Defines weak external symbols |
+| `MH_BINDS_TO_WEAK` | 0x10000 | Uses weak external symbols |
+| `MH_ALLOW_STACK_EXECUTION` | 0x20000 | Stack is executable |
+| `MH_ROOT_SAFE` | 0x40000 | Safe to run with elevated privileges |
+| `MH_SETUID_SAFE` | 0x80000 | Safe for use in setuid/setgid programs |
+| `MH_NO_REEXPORTED_DYLIBS` | 0x100000 | No re-exported dynamic libraries |
+| `MH_PIE` | 0x200000 | Position-independent executable (ASLR) |
+| `MH_DEAD_STRIPPABLE_DYLIB` | 0x400000 | Dylib is not used, can be stripped |
+| `MH_HAS_TLV_DESCRIPTORS` | 0x800000 | Contains thread-local variable descriptors |
+| `MH_NO_HEAP_EXECUTION` | 0x1000000 | Heap is not executable |
+| `MH_APP_EXTENSION_SAFE` | 0x2000000 | Safe for use in app extensions |
+| `MH_NLIST_OUTOFSYNC_WITH_DYLDINFO` | 0x4000000 | Symbol table not in sync with dyld info |
+| `MH_SIM_SUPPORT` | 0x8000000 | Binary supports simulator |
+| `MH_DYLIB_IN_CACHE` | 0x80000000 | Dynamic library is in the shared cache |
+
+### Common Flag Combinations
+
+- **Modern executables:** `MH_DYLDLINK | MH_TWOLEVEL | MH_PIE | MH_NOUNDEFS`
+- **Dynamic libraries:** `MH_DYLDLINK | MH_TWOLEVEL | MH_NO_REEXPORTED_DYLIBS`
+- **App extensions:** `MH_DYLDLINK | MH_TWOLEVEL | MH_PIE | MH_APP_EXTENSION_SAFE`
+
+## Load Commands
+
+Load commands are instructions that tell the kernel and dynamic linker how to load and link the binary. They describe memory segments, dynamic libraries, code signatures, and more.
+
+### Command Reference
+
+| Command | ID | Documentation | Description |
+|---------|-----|--------------|-------------|
+| **Segment Commands** | | | |
+| LC_SEGMENT | 0x01 | [LC_SEGMENT](LC_SEGMENT.md) | Defines a 32-bit memory segment to be loaded |
+| LC_SEGMENT_64 | 0x19 | [LC_SEGMENT_64](LC_SEGMENT_64.md) | Defines a 64-bit memory segment to be loaded |
+| **Symbol Table** | | | |
+| LC_SYMTAB | 0x02 | [LC_SYMTAB](LC_SYMTAB.md) | Symbol table location and size |
+| LC_DYSYMTAB | 0x0B | [LC_DYSYMTAB](LC_DYSYMTAB.md) | Dynamic symbol table information |
+| **Dynamic Linking** | | | |
+| LC_LOAD_DYLIB | 0x0C | [LC_LOAD_DYLIB](LC_LOAD_DYLIB.md) | Load a dynamic library |
+| LC_LOAD_WEAK_DYLIB | 0x80000018 | [LC_LOAD_WEAK_DYLIB](LC_LOAD_WEAK_DYLIB.md) | Load a dynamic library weakly |
+| LC_LOAD_DYLINKER | 0x0E | [LC_LOAD_DYLINKER](LC_LOAD_DYLINKER.md) | Specifies the dynamic linker to use |
+| LC_ID_DYLINKER | 0x0F | [LC_ID_DYLINKER](LC_ID_DYLINKER.md) | Identifies this binary as a dynamic linker |
+| LC_REEXPORT_DYLIB | 0x8000001F | [LC_REEXPORT_DYLIB](LC_REEXPORT_DYLIB.md) | Re-export symbols from another library |
+| LC_LAZY_LOAD_DYLIB | 0x20 | [LC_LAZY_LOAD_DYLIB](LC_LAZY_LOAD_DYLIB.md) | Lazy load a dynamic library |
+| LC_LOAD_UPWARD_DYLIB | 0x80000023 | [LC_LOAD_UPWARD_DYLIB](LC_LOAD_UPWARD_DYLIB.md) | Load library for upward dependencies |
+| LC_DYLD_INFO | 0x22 | [LC_DYLD_INFO](LC_DYLD_INFO.md) | Compressed dyld information (legacy) |
+| LC_DYLD_INFO_ONLY | 0x80000022 | [LC_DYLD_INFO_ONLY](LC_DYLD_INFO_ONLY.md) | Compressed dyld information |
+| LC_DYLD_CHAINED_FIXUPS | 0x80000034 | [LC_DYLD_CHAINED_FIXUPS](LC_DYLD_CHAINED_FIXUPS.md) | Modern chained fixups for faster loading |
+| LC_DYLD_EXPORTS_TRIE | 0x80000033 | [LC_DYLD_EXPORTS_TRIE](LC_DYLD_EXPORTS_TRIE.md) | Exported symbols in trie format |
+| LC_DYLD_ENVIRONMENT | 0x27 | [LC_DYLD_ENVIRONMENT](LC_DYLD_ENVIRONMENT.md) | Environment variable for dyld |
+| **Code Signature** | | | |
+| LC_CODE_SIGNATURE | 0x1D | [LC_CODE_SIGNATURE](LC_CODE_SIGNATURE.md) | Code signature data location |
+| LC_DYLIB_CODE_SIGN_DRS | 0x2B | [LC_DYLIB_CODE_SIGN_DRS](LC_DYLIB_CODE_SIGN_DRS.md) | Code signing DRs for libraries |
+| **Function Information** | | | |
+| LC_FUNCTION_STARTS | 0x26 | [LC_FUNCTION_STARTS](LC_FUNCTION_STARTS.md) | Table of function start addresses |
+| LC_ATOM_INFO | 0x36 | [LC_ATOM_INFO](LC_ATOM_INFO.md) | Atom boundaries for linker optimization |
+| LC_DATA_IN_CODE | 0x29 | [LC_DATA_IN_CODE](LC_DATA_IN_CODE.md) | Regions of code containing data |
+| LC_LINKER_OPTIMIZATION_HINT | 0x2E | [LC_LINKER_OPTIMIZATION_HINT](LC_LINKER_OPTIMIZATION_HINT.md) | Hints for linker optimizations |
+| LC_LINKER_OPTION | 0x2D | [LC_LINKER_OPTION](LC_LINKER_OPTION.md) | Linker options from object files |
+| LC_FUNCTION_VARIANTS | 0x37 | [LC_FUNCTION_VARIANTS](LC_FUNCTION_VARIANTS.md) | Function variant information |
+| LC_FUNCTION_VARIANT_FIXUPS | 0x38 | [LC_FUNCTION_VARIANT_FIXUPS](LC_FUNCTION_VARIANT_FIXUPS.md) | Fixups for function variants |
+| **Version Information** | | | |
+| LC_BUILD_VERSION | 0x32 | [LC_BUILD_VERSION](LC_BUILD_VERSION.md) | SDK and platform version information |
+| LC_VERSION_MIN_MACOSX | 0x24 | [LC_VERSION_MIN_MACOSX](LC_VERSION_MIN_MACOSX.md) | Minimum macOS version required |
+| LC_VERSION_MIN_IPHONEOS | 0x25 | [LC_VERSION_MIN_IPHONEOS](LC_VERSION_MIN_IPHONEOS.md) | Minimum iOS version required |
+| LC_VERSION_MIN_TVOS | 0x2F | [LC_VERSION_MIN_TVOS](LC_VERSION_MIN_TVOS.md) | Minimum tvOS version required |
+| LC_VERSION_MIN_WATCHOS | 0x30 | [LC_VERSION_MIN_WATCHOS](LC_VERSION_MIN_WATCHOS.md) | Minimum watchOS version required |
+| LC_SOURCE_VERSION | 0x2A | [LC_SOURCE_VERSION](LC_SOURCE_VERSION.md) | Source code version |
+| **Encryption** | | | |
+| LC_ENCRYPTION_INFO | 0x21 | [LC_ENCRYPTION_INFO](LC_ENCRYPTION_INFO.md) | Encryption information for 32-bit |
+| LC_ENCRYPTION_INFO_64 | 0x2C | [LC_ENCRYPTION_INFO_64](LC_ENCRYPTION_INFO_64.md) | Encryption information for 64-bit |
+| **Main Entry** | | | |
+| LC_MAIN | 0x80000028 | [LC_MAIN](LC_MAIN.md) | Entry point for executables |
+| LC_UNIXTHREAD | 0x05 | [LC_UNIXTHREAD](LC_UNIXTHREAD.md) | Initial thread state (legacy) |
+| LC_THREAD | 0x04 | [LC_THREAD](LC_THREAD.md) | Thread state (deprecated) |
+| **Substructure** | | | |
+| LC_SUB_FRAMEWORK | 0x12 | [LC_SUB_FRAMEWORK](LC_SUB_FRAMEWORK.md) | Identifies parent umbrella framework |
+| LC_SUB_UMBRELLA | 0x11 | [LC_SUB_UMBRELLA](LC_SUB_UMBRELLA.md) | Identifies sub-umbrella framework |
+| LC_SUB_CLIENT | 0x14 | [LC_SUB_CLIENT](LC_SUB_CLIENT.md) | Restricts clients that can link |
+| LC_SUB_LIBRARY | 0x15 | [LC_SUB_LIBRARY](LC_SUB_LIBRARY.md) | Sub-library within umbrella |
+| **Runtime Path** | | | |
+| LC_RPATH | 0x8000001C | [LC_RPATH](LC_RPATH.md) | Runpath search path |
+| **Miscellaneous** | | | |
+| LC_UUID | 0x1B | [LC_UUID](LC_UUID.md) | Unique identifier for this binary |
+| LC_SEGMENT_SPLIT_INFO | 0x1E | [LC_SEGMENT_SPLIT_INFO](LC_SEGMENT_SPLIT_INFO.md) | Split segment information |
+| LC_NOTE | 0x31 | [LC_NOTE](LC_NOTE.md) | Arbitrary data note |
+| LC_IDENT | 0x08 | [LC_IDENT](LC_IDENT.md) | Object identification (obsolete) |
+| LC_FILESET_ENTRY | 0x80000035 | [LC_FILESET_ENTRY](LC_FILESET_ENTRY.md) | Fileset entry for kernel collections |
+| LC_TARGET_TRIPLE | 0x39 | [LC_TARGET_TRIPLE](LC_TARGET_TRIPLE.md) | Target triple string |
+| **Legacy/Obsolete** | | | |
+| LC_SYMSEG | 0x03 | [LC_SYMSEG](LC_SYMSEG.md) | Symbol segment (obsolete) |
+| LC_LOADFVMLIB | 0x06 | [LC_LOADFVMLIB](LC_LOADFVMLIB.md) | Load fixed VM shared library (obsolete) |
+| LC_IDFVMLIB | 0x07 | [LC_IDFVMLIB](LC_IDFVMLIB.md) | Fixed VM shared library ID (obsolete) |
+| LC_FVMFILE | 0x09 | [LC_FVMFILE](LC_FVMFILE.md) | Fixed VM file (obsolete) |
+| LC_PREPAGE | 0x0A | [LC_PREPAGE](LC_PREPAGE.md) | Prepage command (obsolete) |
+| LC_PREBOUND_DYLIB | 0x10 | [LC_PREBOUND_DYLIB](LC_PREBOUND_DYLIB.md) | Prebound library (obsolete) |
+| LC_ROUTINES | 0x11 | [LC_ROUTINES](LC_ROUTINES.md) | Image routines 32-bit (obsolete) |
+| LC_ROUTINES_64 | 0x1A | [LC_ROUTINES_64](LC_ROUTINES_64.md) | Image routines 64-bit (obsolete) |
+| LC_TWOLEVEL_HINTS | 0x16 | [LC_TWOLEVEL_HINTS](LC_TWOLEVEL_HINTS.md) | Two-level namespace hints (obsolete) |
+| LC_PREBIND_CKSUM | 0x17 | [LC_PREBIND_CKSUM](LC_PREBIND_CKSUM.md) | Prebind checksum (obsolete) |
+
+### Required Commands
+
+Some load commands are required for the dynamic linker:
+
+- Commands with IDs that have the `LC_REQ_DYLD` bit set (0x80000000) **must** be understood by dyld
+- If dyld encounters an unknown required command, it will refuse to load the binary
+- This ensures forward compatibility - new features can be added without breaking old systems
+
+## Common Patterns
+
+### Finding Load Commands
+
+```swift
+// Get the first command of a specific type
+let symtab = macho.getLoadCommandByType(.LC_SYMTAB)
+
+// Get all commands of a specific type (e.g., all LC_LOAD_DYLIB)
+let libraries = macho.getLoadCommandsByType(.LC_LOAD_DYLIB)
+```
+
+### Accessing Parsed Data
+
+```swift
+// Get code signature with parsed blobs
+if let (command, signature) = macho.getSignature() {
+    // Access entitlements, code directory, etc.
+}
+
+// Get entitlements directly
+if let entitlements = macho.entitlements {
+    // Array of entitlement key strings
+}
+```
+
+### Working with Segments
+
+Segments (LC_SEGMENT/LC_SEGMENT_64) define memory regions:
+
+- **__TEXT** - Executable code and read-only data
+- **__DATA** - Writable data (globals, statics)
+- **__LINKEDIT** - Data for the dynamic linker (symbols, relocations, signatures)
+- **__PAGEZERO** - Unmapped region to catch null pointer dereferences (executables only)
+
+Each segment contains one or more sections with specific data types (e.g., `__TEXT,__text` for code, `__DATA,__data` for initialized data).
+
+## File Types
+
+The `header.filetype` field indicates the binary's purpose:
+
+- **MH_EXECUTE** (0x2) - Executable program
+- **MH_DYLIB** (0x6) - Dynamic library (.dylib)
+- **MH_BUNDLE** (0x8) - Bundle/plugin
+- **MH_DYLINKER** (0x7) - Dynamic linker (/usr/lib/dyld)
+- **MH_OBJECT** (0x1) - Relocatable object file (.o)
+- **MH_CORE** (0x4) - Core dump
+- **MH_PRELOAD** (0x5) - Preloaded executable
+- **MH_KEXT_BUNDLE** (0xB) - Kernel extension
+
+## Parsing
+
+The MachO struct is parsed from binary data:
+
+```swift
+let data = Data(contentsOf: URL(fileURLWithPath: "/path/to/binary"))
+try data.withParserSpan { span in
+    let macho = try MachO(parsing: &span, endianness: .little)
+    // Use macho...
+}
+```
+
+For fat/universal binaries, use `FatBinary` which contains multiple MachO slices for different architectures.
+
+## Source
+
+Defined in [`Sources/SwiftMachO/MachO.swift`](../../Sources/SwiftMachO/MachO.swift).
+
+## See Also
+
+- [FatBinary](FatBinary.md) - Universal binary containing multiple architectures
+- [MachOHeader](MachOHeader.md) - Binary header structure
+- [Load Command Reference](#command-reference) - Detailed documentation for each load command type
+
+## References
+
+- [OS X ABI Mach-O File Format Reference](https://github.com/apple-oss-distributions/xnu/blob/main/EXTERNAL_HEADERS/mach-o/loader.h) - Apple's official Mach-O header
+- [Mach-O Programming Topics](https://developer.apple.com/library/archive/documentation/DeveloperTools/Conceptual/MachOTopics/0-Introduction/introduction.html) - Apple's Mach-O guide (archived)
