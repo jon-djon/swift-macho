@@ -8,44 +8,6 @@
 import BinaryParsing
 import Foundation
 
-// Are there more valid values?
-// https://github.com/apple-oss-distributions/dyld/blob/main/common/MachOAnalyzer.cpp
-@CaseName
-public enum ToolEnum: UInt32 {
-    case TOOL_NONE = 0
-    case TOOL_CLANG = 1
-    case TOOL_SWIFT = 2
-    case TOOL_LD = 3
-    case TOOL_LLD = 4
-}
-
-@CaseName
-public enum PlatformEnum: UInt32 {
-    case PLATFORM_UNKNOWN = 0
-    case PLATFORM_MACOS = 1
-    case PLATFORM_IOS = 2
-    case PLATFORM_TVOS = 3
-    case PLATFORM_WATCHOS = 4
-    case PLATFORM_BRIDGEOS = 5
-    case PLATFORM_MACCATALYST = 6
-    case PLATFORM_IOSSIMULATOR = 7
-    case PLATFORM_TVOSSIMULATOR = 8
-    case PLATFORM_WATCHOSSIMULATOR = 9
-    case PLATFORM_DRIVERKIT = 10
-    case PLATFORM_REALITYOS = 11
-    case PLATFORM_REALITYOSSIMULATOR = 12
-    case PLATFORM_FIRMWARE = 13
-    case PLATFORM_SEPOS = 14
-    case PLATFORM_MACOS_EXCLAVECORE = 15
-    case PLATFORM_MACOS_EXCLAVEKIT = 16
-    case PLATFORM_IOS_EXCLAVECORE = 17
-    case PLATFORM_IOS_EXCLAVEKIT = 18
-    case PLATFORM_TVOS_EXCLAVECORE = 19
-    case PLATFORM_TVOS_EXCLAVEKIT = 20
-    case PLATFORM_WATCHOS_EXCLAVECORE = 21
-    case PLATFORM_WATCHOS_EXCLAVEKIT = 22
-}
-
 public struct LC_BUILD_VERSION: LoadCommand {
     public static let expectedID: LoadCommandHeader.ID = .LC_BUILD_VERSION
     public let header: LoadCommandHeader

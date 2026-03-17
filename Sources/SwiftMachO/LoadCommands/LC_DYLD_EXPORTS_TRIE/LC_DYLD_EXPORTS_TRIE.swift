@@ -29,8 +29,9 @@ extension LC_DYLD_EXPORTS_TRIE {
 }
 
 extension LC_DYLD_EXPORTS_TRIE: Displayable {
-    public var title: String { "\(Self.self) TODO" }
-    public var description: String { "" }
+    public var description: String {
+        "Contains the export trie, a compressed prefix tree of all symbols exported by this binary. Each exported symbol has an address offset and flags indicating the export kind."
+    }
     public var fields: [DisplayableField] {
         var b = fieldBuilder()
         addLinkEditFields(to: &b, offsetIsHex: false)

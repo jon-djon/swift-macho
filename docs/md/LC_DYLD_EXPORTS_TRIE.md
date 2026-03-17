@@ -48,6 +48,16 @@ After the terminal data, a child count byte indicates how many edges leave this 
 - [LC_DYLD_CHAINED_FIXUPS](LC_DYLD_CHAINED_FIXUPS.md) -- Paired command providing rebase and bind data in modern binaries
 - [LC_DYLD_INFO](LC_DYLD_INFO.md) -- Legacy command that included the export trie alongside rebase and bind streams
 
+
+
+## Commandline
+
+```
+dyld_info -exports <path-to-binary>
+```
+
+
+
 ## Source
 
 Defined in [`Sources/SwiftMachO/LoadCommands/LC_DYLD_EXPORTS_TRIE.swift`](../../Sources/SwiftMachO/LoadCommands/LC_DYLD_EXPORTS_TRIE.swift).

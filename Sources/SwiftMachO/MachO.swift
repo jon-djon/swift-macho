@@ -205,7 +205,7 @@ private enum DeferredCommand {
             try input.seek(toRelativeOffset: cmd.offset)
             var span = try input.sliceSpan(byteCount: Int(cmd.size))
             return .LC_DYLD_EXPORTS_TRIE(
-                cmd, try LinkEditRaw(parsing: &span, endianness: endianness))
+                cmd, try ExportTrie(parsing: &span))
 
         case .atomInfo(let cmd):
             try input.seek(toRange: machORange)

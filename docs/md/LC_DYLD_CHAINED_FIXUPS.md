@@ -74,6 +74,12 @@ Binaries using chained fixups require these OS versions or later to run. Older s
 - **LC_DYLD_EXPORTS_TRIE** - Can be used alongside chained fixups for exports
 - **LC_SEGMENT_SPLIT_INFO** - Older optimization for ASLR (Address Space Layout Randomization)
 
+## Commandline
+
+```
+dyld_info -fixups <path-to-binary>
+```
+
 ## Source
 
 Defined in [`Sources/SwiftMachO/LoadCommands/LC_DYLD_CHAINED_FIXUPS.swift`](../../Sources/SwiftMachO/LoadCommands/LC_DYLD_CHAINED_FIXUPS.swift).
