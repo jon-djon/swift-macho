@@ -1,5 +1,5 @@
 //
-//  LC_SEGMENT_64.swift
+//  Section64.swift
 //  swift-macho
 //
 //  Created by jon on 10/16/25.
@@ -7,32 +7,6 @@
 
 import BinaryParsing
 import Foundation
-
-@AutoOptionSet
-public struct VM_PROT: OptionSet, Sendable {
-    // public static let VM_PROT_NONE = VM_PROT(rawValue: 0x00000000)
-    public static let VM_PROT_READ = VM_PROT(rawValue: 0x0000_0001)
-    public static let VM_PROT_WRITE = VM_PROT(rawValue: 0x0000_0002)
-    public static let VM_PROT_EXECUTE = VM_PROT(rawValue: 0x0000_0004)  // VM_PROT_RORW_TP & VM_PROT_ALLEXEC
-    public static let VM_PROT_DEFAULT = VM_PROT(rawValue: 0x0000_0003)
-    public static let VM_PROT_NO_CHANGE_LEGACY = VM_PROT(rawValue: 0x0000_0008)
-    public static let VM_PROT_NO_CHANGE = VM_PROT(rawValue: 0x0100_0000)
-    public static let VM_PROT_COPY = VM_PROT(rawValue: 0x0000_0010)  // VM_PROT_WANTS_COPY
-    public static let VM_PROT_IS_MASK = VM_PROT(rawValue: 0x0000_0040)
-    public static let VM_PROT_STRIP_READ = VM_PROT(rawValue: 0x0000_0080)
-    public static let VM_PROT_EXECUTE_ONLY = VM_PROT(rawValue: 0x0000_0084)
-    public static let VM_PROT_TPRO = VM_PROT(rawValue: 0x0000_0200)
-}
-
-@AutoOptionSet
-public struct SegmentFlags: OptionSet, Sendable {
-    // public static let NONE = SegmentFlags(rawValue: 0)
-    public static let HIGH_VM = SegmentFlags(rawValue: 0x0000_0001)
-    public static let FIXED_VM_LIBRARY = SegmentFlags(rawValue: 0x0000_0002)
-    public static let NO_RELOCATIONS = SegmentFlags(rawValue: 0x0000_0004)
-    public static let PROTECTED_V1 = SegmentFlags(rawValue: 0x0000_0008)
-    public static let READ_ONLY = SegmentFlags(rawValue: 0x0000_0010)
-}
 
 public struct Section64: Parseable {
     public let sectionName: String  // 16 [UInt8]
@@ -109,85 +83,6 @@ extension Section64 {
     }
 }
 
-public struct LC_SEGMENT_64: LoadCommand {
-    public static let expectedID: LoadCommandHeader.ID = .LC_SEGMENT_64
-    public let header: LoadCommandHeader
-    public let name: String
-    public let vmaddr: UInt64
-    public let vmsize: UInt64
-    public let fileOffset: UInt64
-    public let fileSize: UInt64
-    public let maxProt: VM_PROT
-    public let initProt: VM_PROT
-    public let nsects: UInt32
-    public let flags: SegmentFlags
-    public let sections: [Section64]
-
-    public let range: Range<Int>
-}
-
-extension LC_SEGMENT_64 {
-    public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
-        self.range = input.parserRange.range
-
-        self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
-        var span = try input.sliceSpan(byteCount: 16)
-        self.name = String(parsingUTF8: &span)
-
-        self.vmaddr = try UInt64(parsing: &input, endianness: endianness)
-        self.vmsize = try UInt64(parsing: &input, endianness: endianness)
-        self.fileOffset = try UInt64(parsing: &input, endianness: endianness)
-        self.fileSize = try UInt64(parsing: &input, endianness: endianness)
-        self.maxProt = try VM_PROT(parsing: &input, endianness: endianness)
-        self.initProt = try VM_PROT(parsing: &input, endianness: endianness)
-        self.nsects = try UInt32(parsing: &input, endianness: endianness)
-        self.flags = try SegmentFlags(parsing: &input, endianness: endianness)
-
-        self.sections = try Array(parsing: &input, count: Int(self.nsects)) { input in
-            var symbolSpan = try input.sliceSpan(byteCount: Section64.size)
-            return try Section64(parsing: &symbolSpan, endianness: endianness)
-        }
-    }
-}
-
-extension LC_SEGMENT_64: Displayable {
-    public var description: String {
-        """
-        Defines a 64-bit segment of the binary that is mapped into memory at runtime.
-
-        Common segments include:
-        `__PAGEZERO`: Guard page at address 0 to catch NULL pointer dereferences
-        `__TEXT`: Executable code and read-only data
-        `__DATA`: Writable initialized data
-        `__DATA_CONST`: Read-only after initialization (e.g., Objective-C metadata)
-        `__LINKEDIT`: Metadata used by the dynamic linker (symbols, signatures, etc.)
-        """
-    }
-    public var fields: [DisplayableField] {
-        var b = fieldBuilder()
-        b.add(label: "Name", stringValue: name, size: 16)
-        b.add(label: "VM Address", stringValue: vmaddr.hexDescription, size: 8)
-        b.add(label: "VM Size", stringValue: vmsize.description, size: 8)
-        b.add(label: "File Offset", stringValue: fileOffset.description, size: 8)
-        b.add(label: "File Size", stringValue: fileSize.description, size: 8)
-        b.add(label: "Max Protections", stringValue: maxProt.description, size: 4)
-        b.add(label: "Initial Protections", stringValue: initProt.description, size: 4)
-        b.add(label: "Number of Sections", stringValue: nsects.description, size: 4)
-        b.add(label: "Flags", stringValue: flags.description, size: 4)
-        b.add(
-            label: "Sections", stringValue: "\(nsects.description) Sections", offset: 72,
-            size: Int(nsects) * Section64.size,
-            children: sections.enumerated().map { (index: Int, section: Section64) in
-                .init(
-                    label: "Section \(index.description)", stringValue: section.description,
-                    offset: 72 + index * Section64.size, size: 4, children: section.fields,
-                    obj: self)
-            })
-        return b.build()
-    }
-    public var children: [Displayable]? { nil }
-}
-
 extension Section64: Displayable {
     public var title: String { "\(Self.self)" }
     public var description: String { "\(segmentName).\(sectionName)" }
@@ -200,7 +95,7 @@ extension Section64: Displayable {
                 label: "Segment Name", stringValue: segmentName, offset: 16, size: 16,
                 children: nil, obj: self),
             .init(
-                label: "Address", stringValue: address.description, offset: 32, size: 8,
+                label: "Address", stringValue: address.hexDescription, offset: 32, size: 8,
                 children: nil, obj: self),
             .init(
                 label: "Size", stringValue: size.description, offset: 40, size: 8, children: nil,

@@ -44,6 +44,7 @@ private enum DeferredCommand {
     case dyldExportsTrie(LC_DYLD_EXPORTS_TRIE)
     case atomInfo(LC_ATOM_INFO)
     case functionVariantFixups(LC_FUNCTION_VARIANT_FIXUPS)
+    case functionVariants(LC_FUNCTION_VARIANTS)
 
     var commandID: LoadCommandHeader.ID {
         switch self {
@@ -61,6 +62,7 @@ private enum DeferredCommand {
         case .dyldExportsTrie(let c): c.header.id
         case .atomInfo(let c): c.header.id
         case .functionVariantFixups(let c): c.header.id
+        case .functionVariants(let c): c.header.id
         }
     }
 
@@ -80,6 +82,7 @@ private enum DeferredCommand {
         case .dyldExportsTrie(let c): c.range.lowerBound
         case .atomInfo(let c): c.range.lowerBound
         case .functionVariantFixups(let c): c.range.lowerBound
+        case .functionVariants(let c): c.range.lowerBound
         }
     }
 
@@ -112,24 +115,34 @@ private enum DeferredCommand {
             try input.seek(toRange: machORange)
             try input.seek(toRelativeOffset: cmd.offset)
             var span = try input.sliceSpan(byteCount: Int(cmd.size))
-            return .LC_ENCRYPTION_INFO_64(cmd, try LinkEditRaw(parsing: &span, endianness: endianness))
+            return .LC_ENCRYPTION_INFO_64(
+                cmd, try LinkEditRaw(parsing: &span, endianness: endianness))
 
         case .symtab(let cmd):
             try input.seek(toRange: machORange)
             try input.seek(toRelativeOffset: cmd.symbolTableOffset)
-            var span = try input.sliceSpan(
-                byteCount: (is64Bit ? Symbol.size64 : Symbol.size32) * Int(cmd.numSymbols))
-            let symbols: [Symbol] = try Array(parsing: &span, count: Int(cmd.numSymbols)) { input in
-                var symbolSpan = try input.sliceSpan(
-                    byteCount: is64Bit ? Symbol.size64 : Symbol.size32)
+            let symbolSize = is64Bit ? Symbol.size64 : Symbol.size32
+            var span = try input.sliceSpan(byteCount: symbolSize * Int(cmd.numSymbols))
+
+            let rawSymbols: [Symbol] = try Array(parsing: &span, count: Int(cmd.numSymbols)) {
+                input in
+                var symbolSpan = try input.sliceSpan(byteCount: symbolSize)
                 return try Symbol(parsing: &symbolSpan, endianness: endianness, is64it: is64Bit)
             }
-            let strings: [String] = try symbols.map { symbol in
+
+            let resolved: [ResolvedSymbol] = try rawSymbols.map { symbol in
                 try input.seek(toRange: machORange)
                 try input.seek(toRelativeOffset: cmd.stringTableOffset + symbol.n_strx)
-                return try String(parsingNulTerminated: &input)
+                let stringStart = input.parserRange.lowerBound
+                let name = try String(parsingNulTerminated: &input)
+                let stringEnd = input.parserRange.lowerBound
+                return ResolvedSymbol(
+                    symbol: symbol, name: name, stringRange: stringStart..<stringEnd)
             }
-            return .LC_SYMTAB(cmd, symbols, strings)
+
+            let symbols = Symbols(
+                range: span.parserRange.range, entries: resolved)
+            return .LC_SYMTAB(cmd, symbols)
 
         case .dysymtab(let cmd):
             let indirectSymbols: [IndirectSymbol]
@@ -152,19 +165,22 @@ private enum DeferredCommand {
             try input.seek(toRange: machORange)
             try input.seek(toRelativeOffset: cmd.offset)
             var span = try input.sliceSpan(byteCount: Int(cmd.size))
-            return .LC_SEGMENT_SPLIT_INFO(cmd, try LinkEditRaw(parsing: &span, endianness: endianness))
+            return .LC_SEGMENT_SPLIT_INFO(
+                cmd, try LinkEditRaw(parsing: &span, endianness: endianness))
 
         case .dyldChainedFixups(let cmd):
             try input.seek(toRange: machORange)
             try input.seek(toRelativeOffset: cmd.offset)
             var span = try input.sliceSpan(byteCount: Int(cmd.size))
-            return .LC_DYLD_CHAINED_FIXUPS(cmd, try ChainedFixupsData(parsing: &span, endianness: endianness))
+            return .LC_DYLD_CHAINED_FIXUPS(
+                cmd, try ChainedFixupsData(parsing: &span, endianness: endianness))
 
         case .dataInCode(let cmd):
             try input.seek(toRange: machORange)
             try input.seek(toRelativeOffset: cmd.offset)
             var span = try input.sliceSpan(byteCount: Int(cmd.size))
-            let entries = try Array(parsing: &span, count: Int(cmd.size) / DataInCode.size) { input in
+            let entries = try Array(parsing: &span, count: Int(cmd.size) / DataInCode.size) {
+                input in
                 var entrySpan = try input.sliceSpan(byteCount: DataInCode.size)
                 return try DataInCode(parsing: &entrySpan, endianness: endianness)
             }
@@ -174,19 +190,22 @@ private enum DeferredCommand {
             try input.seek(toRange: machORange)
             try input.seek(toRelativeOffset: cmd.offset)
             var span = try input.sliceSpan(byteCount: Int(cmd.size))
-            return .LC_DYLIB_CODE_SIGN_DRS(cmd, try LinkEditRaw(parsing: &span, endianness: endianness))
+            return .LC_DYLIB_CODE_SIGN_DRS(
+                cmd, try LinkEditRaw(parsing: &span, endianness: endianness))
 
         case .linkerOptimizationHint(let cmd):
             try input.seek(toRange: machORange)
             try input.seek(toRelativeOffset: cmd.offset)
             var span = try input.sliceSpan(byteCount: Int(cmd.size))
-            return .LC_LINKER_OPTIMIZATION_HINT(cmd, try LinkEditRaw(parsing: &span, endianness: endianness))
+            return .LC_LINKER_OPTIMIZATION_HINT(
+                cmd, try LinkEditRaw(parsing: &span, endianness: endianness))
 
         case .dyldExportsTrie(let cmd):
             try input.seek(toRange: machORange)
             try input.seek(toRelativeOffset: cmd.offset)
             var span = try input.sliceSpan(byteCount: Int(cmd.size))
-            return .LC_DYLD_EXPORTS_TRIE(cmd, try LinkEditRaw(parsing: &span, endianness: endianness))
+            return .LC_DYLD_EXPORTS_TRIE(
+                cmd, try LinkEditRaw(parsing: &span, endianness: endianness))
 
         case .atomInfo(let cmd):
             try input.seek(toRange: machORange)
@@ -198,7 +217,15 @@ private enum DeferredCommand {
             try input.seek(toRange: machORange)
             try input.seek(toRelativeOffset: cmd.offset)
             var span = try input.sliceSpan(byteCount: Int(cmd.size))
-            return .LC_FUNCTION_VARIANT_FIXUPS(cmd, try LinkEditRaw(parsing: &span, endianness: endianness))
+            return .LC_FUNCTION_VARIANT_FIXUPS(
+                cmd, try LinkEditRaw(parsing: &span, endianness: endianness))
+
+        case .functionVariants(let cmd):
+            try input.seek(toRange: machORange)
+            try input.seek(toRelativeOffset: cmd.offset)
+            var span = try input.sliceSpan(byteCount: Int(cmd.size))
+            return .LC_FUNCTION_VARIANTS(
+                cmd, try LinkEditRaw(parsing: &span, endianness: endianness))
         }
     }
 }
@@ -263,125 +290,221 @@ extension MachO: ExpressibleByParsing {
                 try input.seek(toAbsoluteOffset: input.startPosition - 8)
                 var span = try input.sliceSpan(byteCount: hdr.cmdSize)
 
-                let result: ParseResult = switch hdr.id {
-                // --- Deferred: data lives outside the load command in the LinkEdit region ---
-                case .LC_CODE_SIGNATURE:
-                    .deferred(.codeSignature(try LC_CODE_SIGNATURE(parsing: &span, endianness: endianness)))
-                case .LC_FUNCTION_STARTS:
-                    .deferred(.functionStarts(try LC_FUNCTION_STARTS(parsing: &span, endianness: endianness)))
-                case .LC_ENCRYPTION_INFO:
-                    .deferred(.encryptionInfo(try LC_ENCRYPTION_INFO(parsing: &span, endianness: endianness)))
-                case .LC_ENCRYPTION_INFO_64:
-                    .deferred(.encryptionInfo64(try LC_ENCRYPTION_INFO_64(parsing: &span, endianness: endianness)))
-                case .LC_SYMTAB:
-                    .deferred(.symtab(try LC_SYMTAB(parsing: &span, endianness: endianness)))
-                case .LC_DYSYMTAB:
-                    .deferred(.dysymtab(try LC_DYSYMTAB(parsing: &span, endianness: endianness)))
-                case .LC_SEGMENT_SPLIT_INFO:
-                    .deferred(.segmentSplitInfo(try LC_SEGMENT_SPLIT_INFO(parsing: &span, endianness: endianness)))
-                case .LC_DYLD_CHAINED_FIXUPS:
-                    .deferred(.dyldChainedFixups(try LC_DYLD_CHAINED_FIXUPS(parsing: &span, endianness: endianness)))
-                case .LC_DATA_IN_CODE:
-                    .deferred(.dataInCode(try LC_DATA_IN_CODE(parsing: &span, endianness: endianness)))
-                case .LC_DYLIB_CODE_SIGN_DRS:
-                    .deferred(.dylibCodeSignDRS(try LC_DYLIB_CODE_SIGN_DRS(parsing: &span, endianness: endianness)))
-                case .LC_LINKER_OPTIMIZATION_HINT:
-                    .deferred(.linkerOptimizationHint(try LC_LINKER_OPTIMIZATION_HINT(parsing: &span, endianness: endianness)))
-                case .LC_DYLD_EXPORTS_TRIE:
-                    .deferred(.dyldExportsTrie(try LC_DYLD_EXPORTS_TRIE(parsing: &span, endianness: endianness)))
-                case .LC_ATOM_INFO:
-                    .deferred(.atomInfo(try LC_ATOM_INFO(parsing: &span, endianness: endianness)))
-                case .LC_FUNCTION_VARIANT_FIXUPS:
-                    .deferred(.functionVariantFixups(try LC_FUNCTION_VARIANT_FIXUPS(parsing: &span, endianness: endianness)))
+                let result: ParseResult =
+                    switch hdr.id {
+                    // --- Deferred: data lives outside the load command in the LinkEdit region ---
+                    case .LC_CODE_SIGNATURE:
+                        .deferred(
+                            .codeSignature(
+                                try LC_CODE_SIGNATURE(parsing: &span, endianness: endianness)))
+                    case .LC_FUNCTION_STARTS:
+                        .deferred(
+                            .functionStarts(
+                                try LC_FUNCTION_STARTS(parsing: &span, endianness: endianness)))
+                    case .LC_ENCRYPTION_INFO:
+                        .deferred(
+                            .encryptionInfo(
+                                try LC_ENCRYPTION_INFO(parsing: &span, endianness: endianness)))
+                    case .LC_ENCRYPTION_INFO_64:
+                        .deferred(
+                            .encryptionInfo64(
+                                try LC_ENCRYPTION_INFO_64(parsing: &span, endianness: endianness)))
+                    case .LC_SYMTAB:
+                        .deferred(.symtab(try LC_SYMTAB(parsing: &span, endianness: endianness)))
+                    case .LC_DYSYMTAB:
+                        .deferred(
+                            .dysymtab(try LC_DYSYMTAB(parsing: &span, endianness: endianness)))
+                    case .LC_SEGMENT_SPLIT_INFO:
+                        .deferred(
+                            .segmentSplitInfo(
+                                try LC_SEGMENT_SPLIT_INFO(parsing: &span, endianness: endianness)))
+                    case .LC_DYLD_CHAINED_FIXUPS:
+                        .deferred(
+                            .dyldChainedFixups(
+                                try LC_DYLD_CHAINED_FIXUPS(parsing: &span, endianness: endianness)))
+                    case .LC_DATA_IN_CODE:
+                        .deferred(
+                            .dataInCode(try LC_DATA_IN_CODE(parsing: &span, endianness: endianness))
+                        )
+                    case .LC_DYLIB_CODE_SIGN_DRS:
+                        .deferred(
+                            .dylibCodeSignDRS(
+                                try LC_DYLIB_CODE_SIGN_DRS(parsing: &span, endianness: endianness)))
+                    case .LC_LINKER_OPTIMIZATION_HINT:
+                        .deferred(
+                            .linkerOptimizationHint(
+                                try LC_LINKER_OPTIMIZATION_HINT(
+                                    parsing: &span, endianness: endianness)))
+                    case .LC_DYLD_EXPORTS_TRIE:
+                        .deferred(
+                            .dyldExportsTrie(
+                                try LC_DYLD_EXPORTS_TRIE(parsing: &span, endianness: endianness)))
+                    case .LC_ATOM_INFO:
+                        .deferred(
+                            .atomInfo(try LC_ATOM_INFO(parsing: &span, endianness: endianness)))
+                    case .LC_FUNCTION_VARIANT_FIXUPS:
+                        .deferred(
+                            .functionVariantFixups(
+                                try LC_FUNCTION_VARIANT_FIXUPS(
+                                    parsing: &span, endianness: endianness)))
 
-                // --- Immediate: all data is within the load command bytes ---
-                case .LC_SEGMENT:
-                    .immediate(.LC_SEGMENT(try LC_SEGMENT(parsing: &span, endianness: endianness)))
-                case .LC_SYMSEG:
-                    .immediate(.LC_SYMSEG(try LC_SYMSEG(parsing: &span, endianness: endianness)))
-                case .LC_THREAD:
-                    .immediate(.LC_THREAD(try LC_THREAD(parsing: &span, endianness: endianness)))
-                case .LC_UNIXTHREAD:
-                    .immediate(.LC_UNIXTHREAD(try LC_UNIXTHREAD(parsing: &span, endianness: endianness)))
-                case .LC_LOADFVMLIB:
-                    .immediate(.LC_LOADFVMLIB(try LC_LOADFVMLIB(parsing: &span, endianness: endianness)))
-                case .LC_IDFVMLIB:
-                    .immediate(.LC_IDFVMLIB(try LC_IDFVMLIB(parsing: &span, endianness: endianness)))
-                case .LC_IDENT:
-                    .immediate(.LC_IDENT(try LC_IDENT(parsing: &span, endianness: endianness)))
-                case .LC_FVMFILE:
-                    .immediate(.LC_FVMFILE(try LC_FVMFILE(parsing: &span, endianness: endianness)))
-                case .LC_PREPAGE:
-                    .immediate(.LC_PREPAGE(try LC_PREPAGE(parsing: &span, endianness: endianness)))
-                case .LC_LOAD_DYLIB:
-                    .immediate(.LC_LOAD_DYLIB(try LC_LOAD_DYLIB(parsing: &span, endianness: endianness)))
-                case .LC_LOAD_DYLINKER:
-                    .immediate(.LC_LOAD_DYLINKER(try LC_LOAD_DYLINKER(parsing: &span, endianness: endianness)))
-                case .LC_ID_DYLINKER:
-                    .immediate(.LC_ID_DYLINKER(try LC_ID_DYLINKER(parsing: &span, endianness: endianness)))
-                case .LC_PREBOUND_DYLIB:
-                    .immediate(.LC_PREBOUND_DYLIB(try LC_PREBOUND_DYLIB(parsing: &span, endianness: endianness)))
-                case .LC_ROUTINES:
-                    .immediate(.LC_ROUTINES(try LC_ROUTINES(parsing: &span, endianness: endianness)))
-                case .LC_SUB_FRAMEWORK:
-                    .immediate(.LC_SUB_FRAMEWORK(try LC_SUB_FRAMEWORK(parsing: &span, endianness: endianness)))
-                case .LC_SUB_UMBRELLA:
-                    .immediate(.LC_SUB_UMBRELLA(try LC_SUB_UMBRELLA(parsing: &span, endianness: endianness)))
-                case .LC_SUB_CLIENT:
-                    .immediate(.LC_SUB_CLIENT(try LC_SUB_CLIENT(parsing: &span, endianness: endianness)))
-                case .LC_SUB_LIBRARY:
-                    .immediate(.LC_SUB_LIBRARY(try LC_SUB_LIBRARY(parsing: &span, endianness: endianness)))
-                case .LC_TWOLEVEL_HINTS:
-                    .immediate(.LC_TWOLEVEL_HINTS(try LC_TWOLEVEL_HINTS(parsing: &span, endianness: endianness)))
-                case .LC_PREBIND_CKSUM:
-                    .immediate(.LC_PREBIND_CKSUM(try LC_PREBIND_CKSUM(parsing: &span, endianness: endianness)))
-                case .LC_LOAD_WEAK_DYLIB:
-                    .immediate(.LC_LOAD_WEAK_DYLIB(try LC_LOAD_WEAK_DYLIB(parsing: &span, endianness: endianness)))
-                case .LC_SEGMENT_64:
-                    .immediate(.LC_SEGMENT_64(try LC_SEGMENT_64(parsing: &span, endianness: endianness)))
-                case .LC_ROUTINES_64:
-                    .immediate(.LC_ROUTINES_64(try LC_ROUTINES_64(parsing: &span, endianness: endianness)))
-                case .LC_UUID:
-                    .immediate(.LC_UUID(try LC_UUID(parsing: &span, endianness: endianness)))
-                case .LC_RPATH:
-                    .immediate(.LC_RPATH(try LC_RPATH(parsing: &span, endianness: endianness)))
-                case .LC_REEXPORT_DYLIB:
-                    .immediate(.LC_REEXPORT_DYLIB(try LC_REEXPORT_DYLIB(parsing: &span, endianness: endianness)))
-                case .LC_LAZY_LOAD_DYLIB:
-                    .immediate(.LC_LAZY_LOAD_DYLIB(try LC_LAZY_LOAD_DYLIB(parsing: &span, endianness: endianness)))
-                case .LC_DYLD_INFO:
-                    .immediate(.LC_DYLD_INFO(try LC_DYLD_INFO(parsing: &span, endianness: endianness)))
-                case .LC_DYLD_INFO_ONLY:
-                    .immediate(.LC_DYLD_INFO_ONLY(try LC_DYLD_INFO_ONLY(parsing: &span, endianness: endianness)))
-                case .LC_LOAD_UPWARD_DYLIB:
-                    .immediate(.LC_LOAD_UPWARD_DYLIB(try LC_LOAD_UPWARD_DYLIB(parsing: &span, endianness: endianness)))
-                case .LC_VERSION_MIN_MACOSX:
-                    .immediate(.LC_VERSION_MIN_MACOSX(try LC_VERSION_MIN_MACOSX(parsing: &span, endianness: endianness)))
-                case .LC_VERSION_MIN_IPHONEOS:
-                    .immediate(.LC_VERSION_MIN_IPHONEOS(try LC_VERSION_MIN_IPHONEOS(parsing: &span, endianness: endianness)))
-                case .LC_DYLD_ENVIRONMENT:
-                    .immediate(.LC_DYLD_ENVIRONMENT(try LC_DYLD_ENVIRONMENT(parsing: &span, endianness: endianness)))
-                case .LC_MAIN:
-                    .immediate(.LC_MAIN(try LC_MAIN(parsing: &span, endianness: endianness)))
-                case .LC_SOURCE_VERSION:
-                    .immediate(.LC_SOURCE_VERSION(try LC_SOURCE_VERSION(parsing: &span, endianness: endianness)))
-                case .LC_LINKER_OPTION:
-                    .immediate(.LC_LINKER_OPTION(try LC_LINKER_OPTION(parsing: &span, endianness: endianness)))
-                case .LC_VERSION_MIN_TVOS:
-                    .immediate(.LC_VERSION_MIN_TVOS(try LC_VERSION_MIN_TVOS(parsing: &span, endianness: endianness)))
-                case .LC_VERSION_MIN_WATCHOS:
-                    .immediate(.LC_VERSION_MIN_WATCHOS(try LC_VERSION_MIN_WATCHOS(parsing: &span, endianness: endianness)))
-                case .LC_NOTE:
-                    .immediate(.LC_NOTE(try LC_NOTE(parsing: &span, endianness: endianness)))
-                case .LC_BUILD_VERSION:
-                    .immediate(.LC_BUILD_VERSION(try LC_BUILD_VERSION(parsing: &span, endianness: endianness)))
-                case .LC_FILESET_ENTRY:
-                    .immediate(.LC_FILESET_ENTRY(try LC_FILESET_ENTRY(parsing: &span, endianness: endianness)))
-                case .LC_FUNCTION_VARIANTS:
-                    .immediate(.LC_FUNCTION_VARIANTS(try LC_FUNCTION_VARIANTS(parsing: &span, endianness: endianness)))
-                case .LC_TARGET_TRIPLE:
-                    .immediate(.LC_TARGET_TRIPLE(try LC_TARGET_TRIPLE(parsing: &span, endianness: endianness)))
-                }
+                    // --- Immediate: all data is within the load command bytes ---
+                    case .LC_SEGMENT:
+                        .immediate(
+                            .LC_SEGMENT(try LC_SEGMENT(parsing: &span, endianness: endianness)))
+                    case .LC_SYMSEG:
+                        .immediate(
+                            .LC_SYMSEG(try LC_SYMSEG(parsing: &span, endianness: endianness)))
+                    case .LC_THREAD:
+                        .immediate(
+                            .LC_THREAD(try LC_THREAD(parsing: &span, endianness: endianness)))
+                    case .LC_UNIXTHREAD:
+                        .immediate(
+                            .LC_UNIXTHREAD(
+                                try LC_UNIXTHREAD(parsing: &span, endianness: endianness)))
+                    case .LC_LOADFVMLIB:
+                        .immediate(
+                            .LC_LOADFVMLIB(
+                                try LC_LOADFVMLIB(parsing: &span, endianness: endianness)))
+                    case .LC_IDFVMLIB:
+                        .immediate(
+                            .LC_IDFVMLIB(try LC_IDFVMLIB(parsing: &span, endianness: endianness)))
+                    case .LC_IDENT:
+                        .immediate(.LC_IDENT(try LC_IDENT(parsing: &span, endianness: endianness)))
+                    case .LC_FVMFILE:
+                        .immediate(
+                            .LC_FVMFILE(try LC_FVMFILE(parsing: &span, endianness: endianness)))
+                    case .LC_PREPAGE:
+                        .immediate(
+                            .LC_PREPAGE(try LC_PREPAGE(parsing: &span, endianness: endianness)))
+                    case .LC_LOAD_DYLIB:
+                        .immediate(
+                            .LC_LOAD_DYLIB(
+                                try LC_LOAD_DYLIB(parsing: &span, endianness: endianness)))
+                    case .LC_LOAD_DYLINKER:
+                        .immediate(
+                            .LC_LOAD_DYLINKER(
+                                try LC_LOAD_DYLINKER(parsing: &span, endianness: endianness)))
+                    case .LC_ID_DYLINKER:
+                        .immediate(
+                            .LC_ID_DYLINKER(
+                                try LC_ID_DYLINKER(parsing: &span, endianness: endianness)))
+                    case .LC_PREBOUND_DYLIB:
+                        .immediate(
+                            .LC_PREBOUND_DYLIB(
+                                try LC_PREBOUND_DYLIB(parsing: &span, endianness: endianness)))
+                    case .LC_ROUTINES:
+                        .immediate(
+                            .LC_ROUTINES(try LC_ROUTINES(parsing: &span, endianness: endianness)))
+                    case .LC_SUB_FRAMEWORK:
+                        .immediate(
+                            .LC_SUB_FRAMEWORK(
+                                try LC_SUB_FRAMEWORK(parsing: &span, endianness: endianness)))
+                    case .LC_SUB_UMBRELLA:
+                        .immediate(
+                            .LC_SUB_UMBRELLA(
+                                try LC_SUB_UMBRELLA(parsing: &span, endianness: endianness)))
+                    case .LC_SUB_CLIENT:
+                        .immediate(
+                            .LC_SUB_CLIENT(
+                                try LC_SUB_CLIENT(parsing: &span, endianness: endianness)))
+                    case .LC_SUB_LIBRARY:
+                        .immediate(
+                            .LC_SUB_LIBRARY(
+                                try LC_SUB_LIBRARY(parsing: &span, endianness: endianness)))
+                    case .LC_TWOLEVEL_HINTS:
+                        .immediate(
+                            .LC_TWOLEVEL_HINTS(
+                                try LC_TWOLEVEL_HINTS(parsing: &span, endianness: endianness)))
+                    case .LC_PREBIND_CKSUM:
+                        .immediate(
+                            .LC_PREBIND_CKSUM(
+                                try LC_PREBIND_CKSUM(parsing: &span, endianness: endianness)))
+                    case .LC_LOAD_WEAK_DYLIB:
+                        .immediate(
+                            .LC_LOAD_WEAK_DYLIB(
+                                try LC_LOAD_WEAK_DYLIB(parsing: &span, endianness: endianness)))
+                    case .LC_SEGMENT_64:
+                        .immediate(
+                            .LC_SEGMENT_64(
+                                try LC_SEGMENT_64(parsing: &span, endianness: endianness)))
+                    case .LC_ROUTINES_64:
+                        .immediate(
+                            .LC_ROUTINES_64(
+                                try LC_ROUTINES_64(parsing: &span, endianness: endianness)))
+                    case .LC_UUID:
+                        .immediate(.LC_UUID(try LC_UUID(parsing: &span, endianness: endianness)))
+                    case .LC_RPATH:
+                        .immediate(.LC_RPATH(try LC_RPATH(parsing: &span, endianness: endianness)))
+                    case .LC_REEXPORT_DYLIB:
+                        .immediate(
+                            .LC_REEXPORT_DYLIB(
+                                try LC_REEXPORT_DYLIB(parsing: &span, endianness: endianness)))
+                    case .LC_LAZY_LOAD_DYLIB:
+                        .immediate(
+                            .LC_LAZY_LOAD_DYLIB(
+                                try LC_LAZY_LOAD_DYLIB(parsing: &span, endianness: endianness)))
+                    case .LC_DYLD_INFO:
+                        .immediate(
+                            .LC_DYLD_INFO(try LC_DYLD_INFO(parsing: &span, endianness: endianness)))
+                    case .LC_DYLD_INFO_ONLY:
+                        .immediate(
+                            .LC_DYLD_INFO_ONLY(
+                                try LC_DYLD_INFO_ONLY(parsing: &span, endianness: endianness)))
+                    case .LC_LOAD_UPWARD_DYLIB:
+                        .immediate(
+                            .LC_LOAD_UPWARD_DYLIB(
+                                try LC_LOAD_UPWARD_DYLIB(parsing: &span, endianness: endianness)))
+                    case .LC_VERSION_MIN_MACOSX:
+                        .immediate(
+                            .LC_VERSION_MIN_MACOSX(
+                                try LC_VERSION_MIN_MACOSX(parsing: &span, endianness: endianness)))
+                    case .LC_VERSION_MIN_IPHONEOS:
+                        .immediate(
+                            .LC_VERSION_MIN_IPHONEOS(
+                                try LC_VERSION_MIN_IPHONEOS(parsing: &span, endianness: endianness))
+                        )
+                    case .LC_DYLD_ENVIRONMENT:
+                        .immediate(
+                            .LC_DYLD_ENVIRONMENT(
+                                try LC_DYLD_ENVIRONMENT(parsing: &span, endianness: endianness)))
+                    case .LC_MAIN:
+                        .immediate(.LC_MAIN(try LC_MAIN(parsing: &span, endianness: endianness)))
+                    case .LC_SOURCE_VERSION:
+                        .immediate(
+                            .LC_SOURCE_VERSION(
+                                try LC_SOURCE_VERSION(parsing: &span, endianness: endianness)))
+                    case .LC_LINKER_OPTION:
+                        .immediate(
+                            .LC_LINKER_OPTION(
+                                try LC_LINKER_OPTION(parsing: &span, endianness: endianness)))
+                    case .LC_VERSION_MIN_TVOS:
+                        .immediate(
+                            .LC_VERSION_MIN_TVOS(
+                                try LC_VERSION_MIN_TVOS(parsing: &span, endianness: endianness)))
+                    case .LC_VERSION_MIN_WATCHOS:
+                        .immediate(
+                            .LC_VERSION_MIN_WATCHOS(
+                                try LC_VERSION_MIN_WATCHOS(parsing: &span, endianness: endianness)))
+                    case .LC_NOTE:
+                        .immediate(.LC_NOTE(try LC_NOTE(parsing: &span, endianness: endianness)))
+                    case .LC_BUILD_VERSION:
+                        .immediate(
+                            .LC_BUILD_VERSION(
+                                try LC_BUILD_VERSION(parsing: &span, endianness: endianness)))
+                    case .LC_FILESET_ENTRY:
+                        .immediate(
+                            .LC_FILESET_ENTRY(
+                                try LC_FILESET_ENTRY(parsing: &span, endianness: endianness)))
+                    case .LC_FUNCTION_VARIANTS:
+                        .deferred(
+                            .functionVariants(
+                                try LC_FUNCTION_VARIANTS(parsing: &span, endianness: endianness)))
+                    case .LC_TARGET_TRIPLE:
+                        .immediate(
+                            .LC_TARGET_TRIPLE(
+                                try LC_TARGET_TRIPLE(parsing: &span, endianness: endianness)))
+                    }
 
                 parseResults.append(result)
             } catch let e as LoadCommandParsingError {

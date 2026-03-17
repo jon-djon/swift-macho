@@ -52,10 +52,12 @@ extension LC_FILESET_ENTRY: Displayable {
     public var fields: [DisplayableField] {
         var b = fieldBuilder()
         b.add(label: "VM Address", stringValue: vmaddr.hexDescription, size: 8)
-        b.add(label: "File Offset", stringValue: fileoff.hexDescription, size: 8)
+        b.add(label: "File Offset", stringValue: fileoff.description, size: 8)
         b.add(label: "Entry ID Offset", stringValue: entryIdOffset.description, size: 4)
         b.add(label: "Reserved", stringValue: reserved.description, size: 4)
-        b.add(label: "Entry ID", stringValue: entryId, offset: Int(entryIdOffset), size: entryId.count)
+        b.add(
+            label: "Entry ID", stringValue: entryId, offset: Int(entryIdOffset), size: entryId.count
+        )
         return b.build()
     }
     public var children: [Displayable]? { nil }

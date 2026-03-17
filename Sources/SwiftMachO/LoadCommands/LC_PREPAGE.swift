@@ -5,9 +5,12 @@
 //  Created by jon on 10/16/25.
 //
 
-import Foundation
 import BinaryParsing
+import Foundation
 
+// LC_PREPAGE was reserved in the original Mach-O spec but never implemented by Apple.
+// No structure is defined beyond the standard load command header (cmd + cmdsize).
+// XNU's loader.h only defines the constant — no associated fields exist to parse.
 public struct LC_PREPAGE: LoadCommand {
     public static let expectedID: LoadCommandHeader.ID = .LC_PREPAGE
     public let header: LoadCommandHeader

@@ -71,7 +71,7 @@ extension LinkEditRaw: Displayable {
 
 public enum LoadCommandValue {
     case LC_SEGMENT(LC_SEGMENT)
-    case LC_SYMTAB(LC_SYMTAB, [Symbol], [String])
+    case LC_SYMTAB(LC_SYMTAB, Symbols)
     case LC_SYMSEG(LC_SYMSEG)
     case LC_THREAD(LC_THREAD)
     case LC_UNIXTHREAD(LC_UNIXTHREAD)
@@ -125,7 +125,7 @@ public enum LoadCommandValue {
     case LC_DYLD_CHAINED_FIXUPS(LC_DYLD_CHAINED_FIXUPS, ChainedFixupsData)
     case LC_FILESET_ENTRY(LC_FILESET_ENTRY)
     case LC_ATOM_INFO(LC_ATOM_INFO, LinkEditRaw)
-    case LC_FUNCTION_VARIANTS(LC_FUNCTION_VARIANTS)
+    case LC_FUNCTION_VARIANTS(LC_FUNCTION_VARIANTS, LinkEditRaw)
     case LC_FUNCTION_VARIANT_FIXUPS(LC_FUNCTION_VARIANT_FIXUPS, LinkEditRaw)
     case LC_TARGET_TRIPLE(LC_TARGET_TRIPLE)
 }
@@ -143,7 +143,7 @@ extension LoadCommandValue {
         case .LC_ENCRYPTION_INFO(let cmd, _): cmd
         case .LC_ENCRYPTION_INFO_64(let cmd, _): cmd
         case .LC_SEGMENT(let cmd): cmd
-        case .LC_SYMTAB(let cmd, _, _): cmd
+        case .LC_SYMTAB(let cmd, _): cmd
         case .LC_SYMSEG(let cmd): cmd
         case .LC_THREAD(let cmd): cmd
         case .LC_UNIXTHREAD(let cmd): cmd
@@ -187,7 +187,7 @@ extension LoadCommandValue {
         case .LC_DYLD_EXPORTS_TRIE(let cmd, _): cmd
         case .LC_FILESET_ENTRY(let cmd): cmd
         case .LC_ATOM_INFO(let cmd, _): cmd
-        case .LC_FUNCTION_VARIANTS(let cmd): cmd
+        case .LC_FUNCTION_VARIANTS(let cmd, _): cmd
         case .LC_FUNCTION_VARIANT_FIXUPS(let cmd, _): cmd
         case .LC_TARGET_TRIPLE(let cmd): cmd
         }
@@ -200,16 +200,12 @@ extension LoadCommandValue: Displayable {
     public var description: String { command.description }
     public var fields: [DisplayableField] {
         switch self {
-        case .LC_SYMTAB(let cmd, let symbols, let strings):
+        case .LC_SYMTAB(let cmd, let symbols):
             cmd.fields + [
                 .init(
-                    label: "Symbols", stringValue: "\(symbols.count) Symbols", offset: 0, size: 0,
-                    children: symbols.enumerated().map { index, symbol in
-                        .init(
-                            label: "Symbol", stringValue: strings[index], offset: 0,
-                            size: symbol.size,
-                            children: symbol.fields, obj: symbol)
-                    }, obj: self)
+                    label: "Symbols", stringValue: "\(symbols.entries.count) Symbols", offset: 0,
+                    size: 0,
+                    children: symbols.fields, obj: self)
             ]
         case .LC_FUNCTION_STARTS(let cmd, let starts):
             cmd.fields + starts.fields
@@ -250,6 +246,7 @@ extension LoadCommandValue: Displayable {
         case .LC_FUNCTION_STARTS(_, _): []
         case .LC_LINKER_OPTIMIZATION_HINT(_, let le): [le]
         case .LC_FUNCTION_VARIANT_FIXUPS(_, let le): [le]
+        case .LC_FUNCTION_VARIANTS(_, let le): [le]
         case .LC_DYLD_CHAINED_FIXUPS(_, let data): [data]
         case .LC_DYLIB_CODE_SIGN_DRS(_, let le): [le]
         case .LC_ATOM_INFO(_, let le): [le]
@@ -261,7 +258,7 @@ extension LoadCommandValue: Displayable {
         // case .LC_DATA_IN_CODE(_, let codes): []
         //        case .LC_DYLIB_CODE_SIGN_DRS(_, let le): [le]
         //        case .LC_DYLD_EXPORTS_TRIE(_, let le): [le]
-        case .LC_SYMTAB(_, _, _): []
+        case .LC_SYMTAB(_, let symbols): [symbols]
         case .LC_DYSYMTAB(_, _): []
         default: command.children
         }
