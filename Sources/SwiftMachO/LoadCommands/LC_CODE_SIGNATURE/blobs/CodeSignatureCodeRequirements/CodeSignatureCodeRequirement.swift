@@ -135,13 +135,13 @@ extension CodeSignatureCodeRequirement {
                     expressions.append(CodeSignatureRequirementExprOpValue.IntArg(op, idx, data.hexDescription))
                 case .opIdent, .opCDHash, .opNot, .opNamedCode, .opNamedAnchor:
                     let size = try UInt32(parsing: &span, endianness: .big)
-                    let arg = try String(parsingUTF8: &span, count: Int(size).align(4))
+                    let arg = try String(parsingUTF8: &span, count: Int(size).align(4)).trimmingCharacters(in: CharacterSet(charactersIn: "\0"))
                     expressions.append(CodeSignatureRequirementExprOpValue.SingleArg(op, arg))
                 case .opInfoKeyValue:
                     let keySize = try UInt32(parsing: &span, endianness: .big)
-                    let key = try String(parsingUTF8: &span, count: Int(keySize).align(4))
+                    let key = try String(parsingUTF8: &span, count: Int(keySize).align(4)).trimmingCharacters(in: CharacterSet(charactersIn: "\0"))
                     let valueSize = try UInt32(parsing: &span, endianness: .big)
-                    let value = try String(parsingUTF8: &span, count: Int(valueSize).align(4))
+                    let value = try String(parsingUTF8: &span, count: Int(valueSize).align(4)).trimmingCharacters(in: CharacterSet(charactersIn: "\0"))
                     expressions.append(CodeSignatureRequirementExprOpValue.KeyValue(op, key, value))
                 case .opTrustedCert, .opPlatform:
                     let idx = try Int32(parsing: &span, endianness: .big)
@@ -151,7 +151,7 @@ extension CodeSignatureCodeRequirement {
                     expressions.append(CodeSignatureRequirementExprOpValue.CertMatch(op, match))
                 case .opInfoKeyField, .opEntitlementField:
                     let keySize = try UInt32(parsing: &span, endianness: .big)
-                    let key = try String(parsingUTF8: &span, count: Int(keySize).align(4))
+                    let key = try String(parsingUTF8: &span, count: Int(keySize).align(4)).trimmingCharacters(in: CharacterSet(charactersIn: "\0"))
                     let match = try MatchExprSingle(parsing: &span)
                     expressions.append(CodeSignatureRequirementExprOpValue.KeyMatch(op, key, match))
                 }

@@ -1,15 +1,17 @@
-import Foundation
 import BinaryParsing
+import Foundation
 
+private let CPU_SUBTYPE_LIB64: UInt32 = 0x80000000
 
 public struct CPU: CustomStringConvertible {
     public let type: CPU_TYPE
-    public let subtype: UInt32 // TODO
-    
+    public let subtype: CPU_SUBTYPE
+    public let lib64: Bool
+
     public var description: String {
-        "\(type.description) (\(subtype.description))"
+        "\(type.description) \(subtype.description)"
     }
-    
+
     @CaseName
     public enum CPU_TYPE: UInt32, CustomStringConvertible {
         case VAX = 1
@@ -36,55 +38,114 @@ public struct CPU: CustomStringConvertible {
 extension CPU {
     public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
         self.type = try CPU_TYPE(parsing: &input, endianness: endianness)
-        self.subtype = try UInt32(parsing: &input, endianness: endianness)
+        let rawSubtype = try UInt32(parsing: &input, endianness: endianness)
+        self.lib64 = (rawSubtype & CPU_SUBTYPE_LIB64) != 0
+        self.subtype = CPU_SUBTYPE(cpuType: type, rawValue: rawSubtype & ~CPU_SUBTYPE_LIB64)
     }
 }
 
-// TODO: Create enums for CPU_SUBTYPE
-// https://github.com/blacktop/go-macho/blob/625bf9e9a2841515b43ff5d23e6d5ffefe8ac462/types/cpu.go
-// https://github.com/aaronst/macholibre/blob/master/macholibre/dictionary.py#L331
-// https://opensource.apple.com/source/xnu/xnu-4570.41.2/osfmk/mach/machine.h.auto.html
 public enum CPU_SUBTYPE: CustomStringConvertible {
-    case CPU_TYPE_ANY(Int)
-    case CPU_TYPE_VAX(VAX_CPU_SUBTYPE)
-    case CPU_TYPE_MC680(MC680_CPU_SUBTYPE)
-    case CPU_TYPE_X86(X86_CPU_SUBTYPE)
-    case CPU_TYPE_X86_64(X86_CPU_SUBTYPE)  // TODO: It appears that this is wrong CPU_TYPE_X86_64(X86_64_CPU_SUBTYPE), using X86_CPU_SUBTYPE for now
-    case CPU_TYPE_MIPS(MIPS_CPU_SUBTYPE)
-    case CPU_TYPE_MC98000(MC98000_CPU_SUBTYPE)
-    case CPU_TYPE_HPPA(HPPA_CPU_SUBTYPE)
-    case CPU_TYPE_ARM(ARM_CPU_SUBTYPE)
-    case CPU_TYPE_ARM64(ARM64_CPU_SUBTYPE)
-    case CPU_TYPE_ARM64_32(ARM_64_32_CPU_SUBTYPE)
-    case CPU_TYPE_MC88000(MC88000_CPU_SUBTYPE)
-    case CPU_TYPE_SPARC(SPARC_CPU_SUBTYPE)
-    case CPU_TYPE_I860(I860_CPU_SUBTYPE)
-    case CPU_TYPE_ALPHA(Int)
-    case CPU_TYPE_POWERPC(POWERPC_CPU_SUBTYPE)
-    case CPU_TYPE_POWERPC_64(POWERPC_64_CPU_SUBTYPE)
-    
+    case vax(VAX_CPU_SUBTYPE)
+    case mc680(MC680_CPU_SUBTYPE)
+    case x86(X86_CPU_SUBTYPE)
+    case x86_64(X86_CPU_SUBTYPE)
+    case mips(MIPS_CPU_SUBTYPE)
+    case mc98000(MC98000_CPU_SUBTYPE)
+    case hppa(HPPA_CPU_SUBTYPE)
+    case arm(ARM_CPU_SUBTYPE)
+    case arm64(ARM64_CPU_SUBTYPE)
+    case arm64_32(ARM64_32_CPU_SUBTYPE)
+    case mc88000(MC88000_CPU_SUBTYPE)
+    case sparc(SPARC_CPU_SUBTYPE)
+    case i860(I860_CPU_SUBTYPE)
+    case powerpc(POWERPC_CPU_SUBTYPE)
+    case powerpc64(POWERPC_CPU_SUBTYPE)
+    case gpu(UInt32)
+    case gpu2(UInt32)
+    case unknown(cpuType: CPU.CPU_TYPE, rawSubtype: UInt32)
+
     public var description: String {
         switch self {
-        case .CPU_TYPE_ANY(let value): "Any \(value.description)"
-        case .CPU_TYPE_VAX(let value): value.description
-        case .CPU_TYPE_MC680(let value): value.description
-        case .CPU_TYPE_X86(let value): value.description
-        case .CPU_TYPE_X86_64(let value): value.description
-        case .CPU_TYPE_MIPS(let value): value.description
-        case .CPU_TYPE_MC98000(let value): value.description
-        case .CPU_TYPE_HPPA(let value): value.description
-        case .CPU_TYPE_ARM(let value): value.description
-        case .CPU_TYPE_ARM64(let value): value.description
-        case .CPU_TYPE_ARM64_32(let value): value.description
-        case .CPU_TYPE_MC88000(let value): value.description
-        case .CPU_TYPE_SPARC(let value): value.description
-        case .CPU_TYPE_I860(let value): value.description
-        case .CPU_TYPE_ALPHA(let value): value.description
-        case .CPU_TYPE_POWERPC(let value): value.description
-        case .CPU_TYPE_POWERPC_64(let value): value.description
+        case .vax(let v): v.description
+        case .mc680(let v): v.description
+        case .x86(let v): v.description
+        case .x86_64(let v): v.description
+        case .mips(let v): v.description
+        case .mc98000(let v): v.description
+        case .hppa(let v): v.description
+        case .arm(let v): v.description
+        case .arm64(let v): v.description
+        case .arm64_32(let v): v.description
+        case .mc88000(let v): v.description
+        case .sparc(let v): v.description
+        case .i860(let v): v.description
+        case .powerpc(let v): v.description
+        case .powerpc64(let v): v.description
+        case .gpu(let v): "GPU subtype \(v)"
+        case .gpu2(let v): "GPU2 subtype \(v)"
+        case .unknown(_, let v): "unknown (\(v))"
+        }
+    }
+
+    init(cpuType: CPU.CPU_TYPE, rawValue: UInt32) {
+        let v = Int(rawValue)
+        switch cpuType {
+        case .VAX:
+            self = VAX_CPU_SUBTYPE(rawValue: v).map { .vax($0) }
+                ?? .unknown(cpuType: cpuType, rawSubtype: rawValue)
+        case .MC68000:
+            self = MC680_CPU_SUBTYPE(rawValue: v).map { .mc680($0) }
+                ?? .unknown(cpuType: cpuType, rawSubtype: rawValue)
+        case .X86:
+            self = X86_CPU_SUBTYPE(rawValue: v).map { .x86($0) }
+                ?? .unknown(cpuType: cpuType, rawSubtype: rawValue)
+        case .X86_64:
+            self = X86_CPU_SUBTYPE(rawValue: v).map { .x86_64($0) }
+                ?? .unknown(cpuType: cpuType, rawSubtype: rawValue)
+        case .MIPS:
+            self = MIPS_CPU_SUBTYPE(rawValue: v).map { .mips($0) }
+                ?? .unknown(cpuType: cpuType, rawSubtype: rawValue)
+        case .MC98000:
+            self = MC98000_CPU_SUBTYPE(rawValue: v).map { .mc98000($0) }
+                ?? .unknown(cpuType: cpuType, rawSubtype: rawValue)
+        case .HPPA:
+            self = HPPA_CPU_SUBTYPE(rawValue: v).map { .hppa($0) }
+                ?? .unknown(cpuType: cpuType, rawSubtype: rawValue)
+        case .ARM:
+            self = ARM_CPU_SUBTYPE(rawValue: v).map { .arm($0) }
+                ?? .unknown(cpuType: cpuType, rawSubtype: rawValue)
+        case .ARM64:
+            self = ARM64_CPU_SUBTYPE(rawValue: v).map { .arm64($0) }
+                ?? .unknown(cpuType: cpuType, rawSubtype: rawValue)
+        case .ARM64_32:
+            self = ARM64_32_CPU_SUBTYPE(rawValue: v).map { .arm64_32($0) }
+                ?? .unknown(cpuType: cpuType, rawSubtype: rawValue)
+        case .MC88000:
+            self = MC88000_CPU_SUBTYPE(rawValue: v).map { .mc88000($0) }
+                ?? .unknown(cpuType: cpuType, rawSubtype: rawValue)
+        case .SPARC:
+            self = SPARC_CPU_SUBTYPE(rawValue: v).map { .sparc($0) }
+                ?? .unknown(cpuType: cpuType, rawSubtype: rawValue)
+        case .I860:
+            self = I860_CPU_SUBTYPE(rawValue: v).map { .i860($0) }
+                ?? .unknown(cpuType: cpuType, rawSubtype: rawValue)
+        case .ALPHA:
+            self = .unknown(cpuType: cpuType, rawSubtype: rawValue)
+        case .POWERPC:
+            self = POWERPC_CPU_SUBTYPE(rawValue: v).map { .powerpc($0) }
+                ?? .unknown(cpuType: cpuType, rawSubtype: rawValue)
+        case .POWERPC_64:
+            self = POWERPC_CPU_SUBTYPE(rawValue: v).map { .powerpc64($0) }
+                ?? .unknown(cpuType: cpuType, rawSubtype: rawValue)
+        case .GPU:
+            self = .gpu(rawValue)
+        case .GPU2:
+            self = .gpu2(rawValue)
         }
     }
 }
+
+// MARK: - Per-architecture subtype enums
 
 @CaseName
 public enum VAX_CPU_SUBTYPE: Int {
@@ -104,22 +165,10 @@ public enum VAX_CPU_SUBTYPE: Int {
 }
 
 @CaseName
-public enum ARM64_CPU_SUBTYPE: Int {
-    case Arm64All = 0
-    case Arm64V8  = 1
-    case Arm64E   = 2
-}
-
-@CaseName
 public enum MC680_CPU_SUBTYPE: Int {
     case MC68030 = 1
     case MC68040  = 2
     case MC68030_ONLY   = 3
-}
-
-@CaseName
-public enum I386_CPU_SUBTYPE: Int {
-    case MC68030 = 1
 }
 
 @CaseName
@@ -145,31 +194,6 @@ public enum X86_CPU_SUBTYPE: Int {
     case X86_CELERON = 103
     case X86_CELERON_MOBILE = 119
     case X86_486SX = 132
-}
-
-@CaseName
-public enum X86_64_CPU_SUBTYPE: Int {
-    case ALL = 0x80000000
-    case X86_ALL = 0x80000003
-    case X86_ARCH1 = 0x80000004
-    case X86_586 = 0x80000005
-    case X86_64_H = 0x80000008
-    case X86_PENTIUM_M = 0x80000009
-    case X86_PENTIUM_4 = 0x8000000A
-    case X86_ITANIUM = 0x8000000B
-    case X86_XEON = 0x8000000C
-    case X86_INTEL_FAMILY_MAX = 0x8000000F
-    case X86_PENTPRO = 0x80000016
-    case X86_PENTIUM_3_M = 0x80000018
-    case X86_PENTIUM_4_M = 0x8000001A
-    case X86_ITANIUM_2 = 0x8000001B
-    case X86_XEON_MP = 0x8000001C
-    case X86_PENTIUM_3_XEON = 0x80000028
-    case X86_PENTII_M3 = 0x80000036
-    case X86_PENTII_M5 = 0x80000056
-    case X86_CELERON = 0x80000067
-    case X86_CELERON_MOBILE = 0x80000077
-    case X86_486SX = 0x80000084
 }
 
 @CaseName
@@ -214,14 +238,14 @@ public enum ARM_CPU_SUBTYPE: Int {
 }
 
 @CaseName
-public enum ARM_64_CPU_SUBTYPE: Int {
+public enum ARM64_CPU_SUBTYPE: Int {
     case ALL = 0
     case V8 = 1
     case E = 2
 }
 
 @CaseName
-public enum ARM_64_32_CPU_SUBTYPE: Int {
+public enum ARM64_32_CPU_SUBTYPE: Int {
     case ALL = 0
     case V8 = 1
 }
@@ -259,21 +283,4 @@ public enum POWERPC_CPU_SUBTYPE: Int {
     case _7400 = 10
     case _7450 = 11
     case _970 = 100
-}
-
-@CaseName
-public enum POWERPC_64_CPU_SUBTYPE: Int {
-    case ALL = 2147483648
-    case _601 = 2147483649
-    case _602 = 2147483650
-    case _603 = 2147483651
-    case _603e = 2147483652
-    case _603ev = 2147483653
-    case _604 = 2147483654
-    case _604e = 2147483655
-    case _620 = 2147483656
-    case _750 = 2147483657
-    case _7400 = 2147483658
-    case _7450 = 2147483659
-    case _970 = 2147483748
 }

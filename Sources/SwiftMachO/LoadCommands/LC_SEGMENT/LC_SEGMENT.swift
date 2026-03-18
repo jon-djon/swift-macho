@@ -31,7 +31,7 @@ extension LC_SEGMENT {
 
         self.header = try Self.parseAndValidateHeader(from: &input, endianness: endianness)
         var span = try input.sliceSpan(byteCount: 16)
-        self.name = String(parsingUTF8: &span)
+        self.name = String(parsingUTF8: &span).trimmingCharacters(in: CharacterSet(charactersIn: "\0"))
 
         self.vmaddr = try UInt32(parsing: &input, endianness: endianness)
         self.vmsize = try UInt32(parsing: &input, endianness: endianness)

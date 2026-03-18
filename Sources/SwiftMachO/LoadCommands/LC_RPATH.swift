@@ -35,7 +35,7 @@ extension LC_RPATH {
         //        try input.seek(toAbsoluteOffset: self.range.lowerBound+Int(self.strOffset))
         //        var span = input.extractRemaining()
         //        print(span.parserRange.range)
-        self.name = String(parsingUTF8: &input)
+        self.name = String(parsingUTF8: &input).trimmingCharacters(in: CharacterSet(charactersIn: "\0"))
     }
 }
 

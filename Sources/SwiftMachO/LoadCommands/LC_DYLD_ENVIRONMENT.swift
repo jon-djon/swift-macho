@@ -32,7 +32,7 @@ extension LC_DYLD_ENVIRONMENT {
             try input.seek(toRelativeOffset: Int(self.nameOffset) - 12)
         }
 
-        self.name = String(parsingUTF8: &input)
+        self.name = String(parsingUTF8: &input).trimmingCharacters(in: CharacterSet(charactersIn: "\0"))
     }
 }
 

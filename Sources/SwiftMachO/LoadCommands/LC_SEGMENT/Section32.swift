@@ -17,7 +17,7 @@ public struct Section32: Parseable {
     public let alignment: UInt32
     public let relocOffset: UInt32
     public let nRelocs: UInt32
-    public let flags: UInt32
+    public let flags: SectionFlags
     public let reserved1: UInt32
     public let reserved2: UInt32
 
@@ -31,9 +31,9 @@ extension Section32 {
         self.range = input.parserRange.range
 
         var span = try input.sliceSpan(byteCount: 16)
-        self.sectionName = String(parsingUTF8: &span)
+        self.sectionName = String(parsingUTF8: &span).trimmingCharacters(in: CharacterSet(charactersIn: "\0"))
         span = try input.sliceSpan(byteCount: 16)
-        self.segmentName = String(parsingUTF8: &span)
+        self.segmentName = String(parsingUTF8: &span).trimmingCharacters(in: CharacterSet(charactersIn: "\0"))
 
         self.address = try UInt32(parsing: &input, endianness: endianness)
         self.size = try UInt32(parsing: &input, endianness: endianness)
@@ -41,7 +41,7 @@ extension Section32 {
         self.alignment = try UInt32(parsing: &input, endianness: endianness)
         self.relocOffset = try UInt32(parsing: &input, endianness: endianness)
         self.nRelocs = try UInt32(parsing: &input, endianness: endianness)
-        self.flags = try UInt32(parsing: &input, endianness: endianness)
+        self.flags = try SectionFlags(parsing: &input, endianness: endianness)
         self.reserved1 = try UInt32(parsing: &input, endianness: endianness)
         self.reserved2 = try UInt32(parsing: &input, endianness: endianness)
     }

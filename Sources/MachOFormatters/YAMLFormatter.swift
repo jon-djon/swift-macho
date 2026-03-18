@@ -9,34 +9,33 @@ public struct YAMLFormatter: MachOFormatter {
 
     private func appendNode(_ node: DisplayableNode, indent: Int, into lines: inout [String]) {
         let pad = String(repeating: "  ", count: indent)
-        lines.append("\(pad)title: \(yamlScalar(node.title))")
-        if !node.description.isEmpty {
-            lines.append("\(pad)description: \(yamlScalar(node.description))")
+        lines.append("\(pad)\(yamlScalar(node.title)):")
+
+        for field in node.fields {
+            appendField(field, indent: indent + 1, into: &lines)
         }
-        if !node.fields.isEmpty {
-            lines.append("\(pad)fields:")
-            for field in node.fields {
-                appendField(field, indent: indent + 1, into: &lines)
-            }
-        }
+
         if let children = node.children, !children.isEmpty {
-            lines.append("\(pad)children:")
             for child in children {
-                lines.append("\(pad)  -")
-                appendNode(child, indent: indent + 2, into: &lines)
+                appendNode(child, indent: indent + 1, into: &lines)
             }
         }
     }
 
     private func appendField(_ field: FieldNode, indent: Int, into lines: inout [String]) {
         let pad = String(repeating: "  ", count: indent)
-        lines.append("\(pad)- label: \(yamlScalar(field.label))")
-        lines.append("\(pad)  value: \(yamlScalar(field.value))")
         if let children = field.children, !children.isEmpty {
-            lines.append("\(pad)  fields:")
-            for child in children {
-                appendField(child, indent: indent + 2, into: &lines)
+            if field.value.isEmpty {
+                lines.append("\(pad)\(yamlScalar(field.label)):")
+            } else {
+                lines.append("\(pad)\(yamlScalar(field.label)):")
+                lines.append("\(pad)  _value: \(yamlScalar(field.value))")
             }
+            for child in children {
+                appendField(child, indent: indent + 1, into: &lines)
+            }
+        } else {
+            lines.append("\(pad)\(yamlScalar(field.label)): \(yamlScalar(field.value))")
         }
     }
 
@@ -44,6 +43,8 @@ public struct YAMLFormatter: MachOFormatter {
         let needsQuoting = value.contains(":") || value.contains("#")
             || value.contains("\"") || value.contains("'")
             || value.hasPrefix(" ") || value.isEmpty
+            || value.contains("{") || value.contains("}")
+            || value.contains("[") || value.contains("]")
         guard needsQuoting else { return value }
         let escaped = value
             .replacingOccurrences(of: "\\", with: "\\\\")

@@ -68,7 +68,7 @@ extension MatchExprSingle {
             self.timestamp = nil
         case .matchEqual, .matchContains, .matchBeginsWith, .matchEndsWith, .matchLessThan, .matchGreaterThan, .matchLessEqual, .matchGreaterEqual:
             let size = try UInt32(parsing: &input, endianness: .big)
-            self.arg = try String(parsingUTF8: &input, count: Int(size).align(4))
+            self.arg = try String(parsingUTF8: &input, count: Int(size).align(4)).trimmingCharacters(in: CharacterSet(charactersIn: "\0"))
             self.timestamp = nil
         case .matchOn, .matchBefore, .matchAfter, .matchOnOrBefore, .matchOnOrAfter:
             self.timestamp = try UInt64(parsing: &input, endianness: .big)
