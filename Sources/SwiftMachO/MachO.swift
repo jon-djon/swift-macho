@@ -7,7 +7,6 @@ public struct MachO: Parseable {
     public let loadCommands: [LoadCommandValue]
 
     public let range: Range<Int>
-    // public var file: MachOFile?  // TODO: need to decide if the MachO should maintain a reference to the file
 
     public var rawCommands: [LoadCommand] {
         loadCommands.map { $0.command }
@@ -166,7 +165,7 @@ private enum DeferredCommand {
             try input.seek(toRelativeOffset: cmd.offset)
             var span = try input.sliceSpan(byteCount: Int(cmd.size))
             return .LC_SEGMENT_SPLIT_INFO(
-                cmd, try LinkEditRaw(parsing: &span, endianness: endianness))
+                cmd, try SplitSegInfo(parsing: &span))
 
         case .dyldChainedFixups(let cmd):
             try input.seek(toRange: machORange)
@@ -198,7 +197,7 @@ private enum DeferredCommand {
             try input.seek(toRelativeOffset: cmd.offset)
             var span = try input.sliceSpan(byteCount: Int(cmd.size))
             return .LC_LINKER_OPTIMIZATION_HINT(
-                cmd, try LinkEditRaw(parsing: &span, endianness: endianness))
+                cmd, try LinkerOptimizationHints(parsing: &span))
 
         case .dyldExportsTrie(let cmd):
             try input.seek(toRange: machORange)
@@ -218,14 +217,14 @@ private enum DeferredCommand {
             try input.seek(toRelativeOffset: cmd.offset)
             var span = try input.sliceSpan(byteCount: Int(cmd.size))
             return .LC_FUNCTION_VARIANT_FIXUPS(
-                cmd, try LinkEditRaw(parsing: &span, endianness: endianness))
+                cmd, try FunctionVariantFixups(parsing: &span))
 
         case .functionVariants(let cmd):
             try input.seek(toRange: machORange)
             try input.seek(toRelativeOffset: cmd.offset)
             var span = try input.sliceSpan(byteCount: Int(cmd.size))
             return .LC_FUNCTION_VARIANTS(
-                cmd, try LinkEditRaw(parsing: &span, endianness: endianness))
+                cmd, try FunctionVariants(parsing: &span))
         }
     }
 }

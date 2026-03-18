@@ -28,7 +28,7 @@ extension LC_LINKER_OPTIMIZATION_HINT {
 }
 
 extension LC_LINKER_OPTIMIZATION_HINT: Displayable {
-    public var title: String { "\(Self.self) TODO" }
+    public var title: String { "\(Self.self)" }
     public var description: String { "" }
     public var fields: [DisplayableField] {
         var b = fieldBuilder()

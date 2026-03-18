@@ -55,8 +55,9 @@ extension CodeSignatureCodeEntitlements: Displayable {
             .init(label: "Magic", stringValue: magic.description, offset: 0, size: 4, children: nil, obj: self),
             .init(label: "Length", stringValue: length.description, offset: 4, size: 4, children: nil, obj: self),
             .init(label: "Entitlements", stringValue: "\(entitlements.count) Entitlements", offset: 8, size: Int(length),
-                  children: entitlements.map { (entitlement: String, value: Any) in
-                        .init(label: entitlement, stringValue: "TODO", offset: 0, size: 0, children: nil, obj: self)
+                  children: entitlements.sorted(by: { $0.key < $1.key }).map { key, value in
+                        .init(label: key, stringValue: Self.displayString(for: value),
+                              offset: 0, size: 0, children: Self.displayChildren(for: value), obj: self)
                   },
             obj: self),
         ]
@@ -64,5 +65,41 @@ extension CodeSignatureCodeEntitlements: Displayable {
     
     public var children: [any Displayable]? {
         []
+    }
+
+    private static func displayString(for value: Any) -> String {
+        switch value {
+        case let bool as Bool:
+            return bool.description
+        case let string as String:
+            return string
+        case let number as NSNumber:
+            return number.stringValue
+        case let data as Data:
+            return "\(data.count) bytes"
+        case let array as [Any]:
+            return "\(array.count) items"
+        case let dict as [String: Any]:
+            return "\(dict.count) pairs"
+        default:
+            return String(describing: value)
+        }
+    }
+
+    private static func displayChildren(for value: Any) -> [DisplayableField]? {
+        switch value {
+        case let array as [Any]:
+            return array.enumerated().map { index, element in
+                .init(label: "[\(index)]", stringValue: displayString(for: element),
+                      offset: 0, size: 0, children: displayChildren(for: element), obj: nil)
+            }
+        case let dict as [String: Any]:
+            return dict.sorted(by: { $0.key < $1.key }).map { key, element in
+                .init(label: key, stringValue: displayString(for: element),
+                      offset: 0, size: 0, children: displayChildren(for: element), obj: nil)
+            }
+        default:
+            return nil
+        }
     }
 }

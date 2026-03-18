@@ -10,9 +10,17 @@ import Foundation
 
 /// Parsed split segment info data from __LINKEDIT
 public struct SplitSegInfo: Parseable {
-    public let version: Int  // 1 for v1 format, 2 for v2 format
+    public let firstByte: UInt8
     public let fixups: [SplitSegInfoFixup]
     public let range: Range<Int>
+
+    public var version: Int {
+        if self.firstByte == Self.v2Marker {
+            return 2
+        } else {
+            return 1
+        }
+    }
 }
 
 extension SplitSegInfo {
@@ -22,22 +30,15 @@ extension SplitSegInfo {
     public init(parsing input: inout ParserSpan) throws {
         self.range = input.parserRange.range
 
-        guard !input.isEmpty else {
-            self.version = 0
-            self.fixups = []
-            return
-        }
-
         // Check if this is v2 format (starts with 0x7F)
-        let firstByte = try UInt8(parsing: &input)
+        let startPosition = input.parserRange.lowerBound
+        self.firstByte = try UInt8(parsing: &input)
 
-        if firstByte == Self.v2Marker {
-            self.version = 2
+        if self.firstByte == Self.v2Marker {
             self.fixups = try Self.parseV2(&input)
         } else {
             // V1 format - rewind and parse
-            try input.seek(toRelativeOffset: -1)
-            self.version = 1
+            try input.seek(toAbsoluteOffset: startPosition)
             self.fixups = try Self.parseV1(&input)
         }
     }

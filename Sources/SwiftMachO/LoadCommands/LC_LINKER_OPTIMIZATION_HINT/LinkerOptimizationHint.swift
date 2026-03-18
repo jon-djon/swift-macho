@@ -5,17 +5,19 @@
 //  Created by jon on 10/16/25.
 //
 
-import Foundation
 import BinaryParsing
+import Foundation
 
-public struct LinkerOptimizationHint: Parseable {
-    // TODO: Not sure if this is correct or not????
+/// A single linker optimization hint entry from __LINKEDIT.
+/// Each hint specifies a kind (ARM64 instruction pattern) and the
+/// absolute file offsets of the instructions involved.
+public struct LinkerOptimizationHint {
     public let kind: Kind
-
+    public let addresses: [UInt]
     public let range: Range<Int>
 
     @CaseName
-    public enum Kind: UInt32 {
+    public enum Kind: UInt8 {
         case LOH_ARM64_ADRP_ADRP = 1
         case LOH_ARM64_ADRP_LDR = 2
         case LOH_ARM64_ADRP_ADD_LDR = 3
@@ -27,10 +29,23 @@ public struct LinkerOptimizationHint: Parseable {
     }
 }
 
-extension LinkerOptimizationHint {
-    public init(parsing input: inout ParserSpan, endianness: Endianness) throws {
-        self.range = input.parserRange.range
-
-        self.kind = try LinkerOptimizationHint.Kind(parsing: &input, endianness: .little )
+extension LinkerOptimizationHint: Displayable {
+    public var title: String { "LinkerOptimizationHint" }
+    public var description: String {
+        "\(kind.description): \(addresses.map { $0.hexDescription }.joined(separator: ", "))"
     }
+    public var fields: [DisplayableField] {
+        var fields: [DisplayableField] = [
+            .init(
+                label: "Kind", stringValue: kind.description, offset: 0, size: 0,
+                children: nil, obj: self)
+        ]
+        for (index, addr) in addresses.enumerated() {
+            fields.append(.init(
+                label: "Address \(index)", stringValue: addr.hexDescription, offset: 0,
+                size: 0, children: nil, obj: self))
+        }
+        return fields
+    }
+    public var children: [Displayable]? { nil }
 }

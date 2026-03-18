@@ -5,12 +5,12 @@
 //  Created by jon on 9/29/25.
 //
 
-import Foundation
 import BinaryParsing
+import Foundation
 
 public struct FunctionStarts: Parseable {
     public let starts: [UInt]  // These are offsets from the start of the text section vmaddress
-    public let offsets: [Int]
+    private let offsets: [Int]
 
     public let range: Range<Int>
 }
@@ -34,10 +34,14 @@ extension FunctionStarts: Displayable {
     public var description: String { "" }
     public var fields: [DisplayableField] {
         [
-            .init(label: "Function Starts", stringValue: "Starts \(starts.count)", offset: 0, size: range.count,
-                  children: starts.enumerated().map { index,value in
-                          .init(label: "Start \(index)", stringValue: value.hexDescription, offset: offsets[index], size: 0, children: nil, obj: self)
-                  }, obj: self)
+            .init(
+                label: "Function Starts", stringValue: "Starts \(starts.count)", offset: 0,
+                size: range.count,
+                children: starts.enumerated().map { index, value in
+                    .init(
+                        label: "Start \(index)", stringValue: value.hexDescription,
+                        offset: offsets[index], size: 0, children: nil, obj: self)
+                }, obj: self)
         ]
 
     }
