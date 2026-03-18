@@ -38,13 +38,20 @@ extension FatBinary: ExpressibleByParsing {
         
         self.range = start..<input.startPosition
         
-        self.machos = try self.architectures.compactMap { arch in
+        self.machos = try self.architectures.enumerated().compactMap { index, arch in
             // Fat Archives can contain files other than macho (e.g. "!<arch>" files)
             guard FatBinary.archiveIsMachO(arch, using: &input) else { return nil }
-            
-            try input.seek(toAbsoluteOffset: arch.offset)
-            var machoSlice = try input.sliceSpan(byteCount: Int(arch.size))
-            return try MachO(parsing: &machoSlice)
+
+            do {
+                try input.seek(toAbsoluteOffset: arch.offset)
+                var machoSlice = try input.sliceSpan(byteCount: Int(arch.size))
+                return try MachO(parsing: &machoSlice)
+            } catch let e as LoadCommandParsingError {
+                throw e
+            } catch {
+                throw MachOError.parsingError(
+                    "Fat archive #\(index) (cpu: \(arch.cpu), offset: \(arch.offset.hexDescription), size: \(arch.size)): \(error)")
+            }
         }
         
         // TODO: Look into parsing additional types foud in the binary (e.g. "!<arch>" files)

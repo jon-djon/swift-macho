@@ -29,7 +29,8 @@ extension LinkerOptimizationHints {
 
             let argCount = Int(try UInt(parsingLEB128: &input))
 
-            guard let kind = LinkerOptimizationHint.Kind(rawValue: UInt8(kindRaw)) else {
+            guard let kindByte = UInt8(exactly: kindRaw),
+                  let kind = LinkerOptimizationHint.Kind(rawValue: kindByte) else {
                 // Unknown kind — skip addresses
                 for _ in 0..<argCount {
                     _ = try UInt(parsingLEB128: &input)

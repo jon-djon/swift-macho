@@ -30,6 +30,12 @@ extension SplitSegInfo {
     public init(parsing input: inout ParserSpan) throws {
         self.range = input.parserRange.range
 
+        guard !input.isEmpty else {
+            self.firstByte = 0
+            self.fixups = []
+            return
+        }
+
         // Check if this is v2 format (starts with 0x7F)
         let startPosition = input.parserRange.lowerBound
         self.firstByte = try UInt8(parsing: &input)
@@ -106,7 +112,8 @@ extension SplitSegInfo {
 
                     let kindStart = input.startPosition
                     let kindRaw = try UInt(parsingLEB128: &input)
-                    guard let kind = SplitSegInfoV2Kind(rawValue: UInt8(kindRaw)) else {
+                    guard let kindByte = UInt8(exactly: kindRaw),
+                          let kind = SplitSegInfoV2Kind(rawValue: kindByte) else {
                         // Skip unknown kinds
                         _ = try UInt(parsingLEB128: &input)  // count
                         _ = try UInt(parsingLEB128: &input)  // delta

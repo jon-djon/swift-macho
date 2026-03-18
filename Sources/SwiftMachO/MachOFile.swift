@@ -36,10 +36,19 @@ public struct MachOFile {
             try BinaryMagic(parsing: &input, endianness: .little)
         }
 
-        if magic.isFat {
-            self.file = BinaryType.fat(try FatBinary(parsing: data))
-        } else {
-            self.file = BinaryType.macho(try MachO(parsing: data))
+        do {
+            if magic.isFat {
+                self.file = BinaryType.fat(try FatBinary(parsing: data))
+            } else {
+                self.file = BinaryType.macho(try MachO(parsing: data))
+            }
+        } catch let e as MachOError {
+            throw e
+        } catch let e as LoadCommandParsingError {
+            throw e
+        } catch {
+            throw MachOError.parsingError(
+                "\(url.lastPathComponent) (magic: \(magic)): \(error)")
         }
     }
 }

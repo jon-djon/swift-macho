@@ -28,6 +28,8 @@ public struct CPU: CustomStringConvertible {
         case ALPHA = 16
         case POWERPC = 18
         case POWERPC_64 = 0x1000012
+        case GPU = 0x1000013
+        case GPU2 = 0x1000017
     }
 }
 

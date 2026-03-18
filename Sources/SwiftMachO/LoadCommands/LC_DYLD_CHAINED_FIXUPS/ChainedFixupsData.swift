@@ -38,11 +38,24 @@ extension ChainedFixupsData {
 
         // Parse header fields
         self.fixupsVersion = try UInt32(parsing: &input, endianness: endianness)
+        guard self.fixupsVersion == 0 else {
+            throw MachOError.parsingError(
+                "ChainedFixupsData: unsupported fixups version \(self.fixupsVersion) (expected 0). "
+                + "The linked edit data may be encrypted or corrupted.")
+        }
         self.startsOffset = try UInt32(parsing: &input, endianness: endianness)
         self.importsOffset = try UInt32(parsing: &input, endianness: endianness)
         self.symbolsOffset = try UInt32(parsing: &input, endianness: endianness)
         self.importsCount = try UInt32(parsing: &input, endianness: endianness)
-        self.importsFormat = try ImportsFormat(parsing: &input, endianness: endianness)
+
+        let importsFormatRaw = try UInt32(parsing: &input, endianness: endianness)
+        guard let importsFormat = ImportsFormat(rawValue: importsFormatRaw) else {
+            throw MachOError.parsingError(
+                "ChainedFixupsData: unknown imports format \(importsFormatRaw) "
+                + "(fixups version: \(self.fixupsVersion), imports count: \(self.importsCount))")
+        }
+        self.importsFormat = importsFormat
+
         self.symbolsFormat = try UInt32(parsing: &input, endianness: endianness)
 
         // Parse starts in image if present
@@ -59,7 +72,8 @@ extension ChainedFixupsData {
             try input.seek(toAbsoluteOffset: startPosition + Int(self.importsOffset))
 
             for _ in 0..<self.importsCount {
-                imports.append(try DyldChainedImport(parsing: &input, endianness: endianness))
+                imports.append(try DyldChainedImport(
+                    parsing: &input, endianness: endianness, format: self.importsFormat))
             }
         }
         self.imports = imports
